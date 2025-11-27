@@ -13,11 +13,23 @@ import MyOrdersScreen from './screens/MyOrders/MyOrdersScreen'
 import ProfileScreen from './screens/Profile/ProfileScreen'
 import UpdateProfileScreen from './screens/ProfileUpdate/UpdateProfileScreen'
 
+// --- Nuevas Importaciones para el Panel Admin ---
+import AdminLayout from './screens/AdminDashboard/AdminLayout'
+import DashboardScreen from './screens/AdminDashboard/DashboardScreen'
+import ClientsListScreen from './screens/AdminDashboard/ClientsListScreen'
+import ClientDetailsScreen from './screens/AdminDashboard/ClientDetailsScreen'
+// import OrdersListScreen from './screens/AdminDashboard/OrdersListScreen'
+// import ProductsListScreen from './screens/AdminDashboard/ProductsListScreen'
+// import CategoriesListScreen from './screens/AdminDashboard/CategoriesListScreen'
+// import BillsListScreen from './screens/AdminDashboard/BillsListScreen'
+
+
 function App() {
 
   return (
     <div>
       <Routes>
+        {/* Rutas Públicas/Clientes */}
         <Route path="/" element={<> <Navbar/> <HomeScreen/> </>}  />
         <Route path="/signup" element={<> <SignupScreen/> </>}  />
         <Route path="/login" element={<> <LoginScreen/> </>}  />
@@ -26,6 +38,17 @@ function App() {
         <Route path="/orders" element={<> <Navbar/> <MyOrdersScreen/> </>}  />
         <Route path="/profile" element={<> <Navbar/> <ProfileScreen/> </>}  />
         <Route path="/profile/update" element={<> <Navbar/> <UpdateProfileScreen/> </>}  />
+        
+        {/* Rutas de Administración */}
+        <Route path="/admin" element={<AdminLayout/>}>
+            <Route index element={<DashboardScreen />} />
+            <Route path="clients" element={<ClientsListScreen />} />
+            <Route path="clients/:clientId" element={<ClientDetailsScreen />}/>
+            {/* <Route path="orders" element={<OrdersListScreen />} />
+            <Route path="products" element={<ProductsListScreen />} />
+            <Route path="categories" element={<CategoriesListScreen />} />
+            <Route path="bills" element={<BillsListScreen />} /> */}
+        </Route>
       </Routes>
     </div>
   )
