@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+// Importamos useNavigate para la redirección al Login
+import { useNavigate } from 'react-router-dom';
 
 // URL base de la API, asumimos que está corriendo en localhost:8000
 
@@ -11,115 +13,9 @@ const formFields = [
     { label: 'Teléfono', name: 'telephone', type: 'tel', required: true, placeholder: '+525512345678' },
 ];
 
-// Estilos CSS estándar
-const styles = {
-    container: {
-        minHeight: '100vh',
-        backgroundColor: '#f9fafb', // bg-gray-50
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px',
-        fontFamily: 'Arial, sans-serif'
-    },
-    card: {
-        width: '100%',
-        maxWidth: '512px', // max-w-lg
-        backgroundColor: '#fff',
-        padding: '32px',
-        borderRadius: '12px', // rounded-xl
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', // shadow-2xl
-        border: '1px solid #f3f4f6', // border-gray-100
-    },
-    header: {
-        fontSize: '2rem', // text-3xl
-        fontWeight: '800', // font-extrabold
-        color: '#1f2937', // text-gray-900
-        textAlign: 'center',
-        marginBottom: '24px', // mb-6
-    },
-    subtitle: {
-        textAlign: 'center',
-        fontSize: '0.875rem', // text-sm
-        color: '#6b7280', // text-gray-500
-        marginBottom: '32px', // mb-8
-    },
-    formGroup: {
-        marginBottom: '24px', // space-y-6 equivalent
-    },
-    label: {
-        display: 'block',
-        fontSize: '0.875rem', // text-sm
-        fontWeight: '600', // font-semibold
-        color: '#374151', // text-gray-700
-        marginBottom: '4px', // mb-1
-    },
-    input: {
-        width: '100%',
-        padding: '10px 16px', // px-4 py-2
-        border: '1px solid #d1d5db', // border-gray-300
-        borderRadius: '8px', // rounded-lg
-        transition: 'all 0.15s ease-in-out',
-        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', // shadow-sm
-    },
-    inputFocus: {
-        borderColor: '#3b82f6', // focus:border-blue-500
-        boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.5)', // focus:ring-2 focus:ring-blue-500
-        outline: 'none',
-    },
-    button: {
-        width: '100%',
-        display: 'flex',
-        justifyContent: 'center',
-        padding: '12px 16px', // py-3 px-4
-        border: 'none',
-        borderRadius: '8px', // rounded-lg
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)', // shadow-lg
-        fontSize: '1.125rem', // text-lg
-        fontWeight: '700', // font-bold
-        color: 'white',
-        backgroundColor: '#2563eb', // bg-blue-600
-        cursor: 'pointer',
-        transition: 'background-color 0.15s ease-in-out',
-    },
-    buttonHover: {
-        backgroundColor: '#1d4ed8', // hover:bg-blue-700
-    },
-    buttonDisabled: {
-        opacity: 0.5,
-        cursor: 'not-allowed',
-    },
-    messageBase: {
-        padding: '12px', // p-3
-        borderRadius: '8px', // rounded-lg
-        fontWeight: '600', // font-medium
-        marginBottom: '16px', // mb-4
-        borderWidth: '1px',
-        borderStyle: 'solid',
-    },
-    messageSuccess: {
-        backgroundColor: '#d4edda', // bg-green-100
-        color: '#155724', // text-green-700
-        borderColor: '#c3e6cb', // border-green-200
-    },
-    messageError: {
-        backgroundColor: '#f8d7da', // bg-red-100
-        color: '#721c24', // text-red-700
-        borderColor: '#f5c6cb', // border-red-200
-    },
-    spinner: {
-        marginRight: '12px', // mr-3
-        height: '20px', // h-5
-        width: '20px', // w-5
-        animation: 'spin 1s linear infinite',
-    },
-    '@keyframes spin': {
-        from: { transform: 'rotate(0deg)' },
-        to: { transform: 'rotate(360deg)' },
-    }
-};
-
 const SignupScreen = () => {
+    const navigate = useNavigate(); // <-- Agregamos useNavigate
+
     const [formData, setFormData] = useState({
         name: '',
         lastname: '',
@@ -128,7 +24,7 @@ const SignupScreen = () => {
     });
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
-    
+
     // Función para manejar los cambios en los inputs del formulario
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -151,23 +47,19 @@ const SignupScreen = () => {
         try {
             // El servidor espera los campos en inglés: { name, lastname, email, telephone }
             const response = await axios.post(`/clients`, formData);
-
             setLoading(false);
             setMessage({ 
                 type: 'success', 
-                text: `¡Registro exitoso! Tu ID de Cliente es: ${response.data.id_key}. Úsalo para el login.`
+                text: `¡Registro exitoso! Tu ID de Cliente es: ${response.data.id_key}. Ahora puedes Iniciar Sesión.`
             });
             // Opcional: Limpiar el formulario
-            setFormData({ name: '', lastname: '', email: '', telephone: '' }); 
-
+            setFormData({ name: '', lastname: '', email: '', telephone: '' });
         } catch (error) {
             setLoading(false);
-            
             let errorMessage = 'Error desconocido. Intente de nuevo más tarde.';
             if (error.response) {
                 // El servidor devuelve el error de validación de Pydantic o de unicidad (409 Conflict)
                 const apiError = error.response.data;
-
                 if (error.response.status === 409) {
                     errorMessage = 'Error: El correo electrónico ya está registrado.';
                 } else if (apiError.detail && Array.isArray(apiError.detail)) {
@@ -181,11 +73,18 @@ const SignupScreen = () => {
                     errorMessage = `Error: ${apiError.message}`;
                 }
             } else if (error.request) {
-                errorMessage = 'No se pudo conectar al servidor API. Asegúrate de que el servidor esté corriendo en ' + API_BASE_URL;
+                // Asumimos que la URL base está definida globalmente
+                errorMessage = 'No se pudo conectar al servidor API. Asegúrate de que el servidor esté corriendo.'; 
             }
 
             setMessage({ type: 'error', text: errorMessage });
         }
+    };
+    
+    // Función para manejar la navegación a la pantalla de Login
+    const handleLoginClick = (e) => {
+        e.preventDefault();
+        navigate('/login')
     };
 
     const MessageComponent = ({ type, text }) => {
@@ -194,12 +93,135 @@ const SignupScreen = () => {
         
         return <div style={{ ...styles.messageBase, ...style }}>{text}</div>;
     };
-
+    
+    // Estilos CSS estándar (Actualizados para el tema Dark/Red)
+    const styles = {
+        container: {
+            minHeight: '100vh',
+            backgroundColor: '#121212', // Fondo oscuro
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+            fontFamily: 'Arial, sans-serif'
+        },
+        card: {
+            width: '100%',
+            maxWidth: '512px',
+            backgroundColor: '#1e1e1e', // Fondo de tarjeta oscuro
+            padding: '32px',
+            borderRadius: '12px',
+            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.5)',
+            border: '1px solid #424242',
+        },
+        header: {
+            fontSize: '2.5rem',
+            fontWeight: '900',
+            color: '#ff5722', // Rojo Primario
+            textAlign: 'center',
+            marginBottom: '16px',
+        },
+        subtitle: {
+            textAlign: 'center',
+            fontSize: '1rem',
+            color: '#bdbdbd',
+            marginBottom: '32px',
+        },
+        formGroup: {
+            marginBottom: '24px',
+        },
+        label: {
+            display: 'block',
+            fontSize: '0.9rem',
+            fontWeight: '600',
+            color: '#e0e0e0', // Texto claro
+            marginBottom: '4px',
+        },
+        input: {
+            width: '100%',
+            padding: '10px 16px',
+            border: '1px solid #424242',
+            borderRadius: '8px',
+            backgroundColor: '#2e2e2e', // Fondo de input oscuro
+            color: '#e0e0e0', // Texto de input claro
+            transition: 'all 0.15s ease-in-out',
+            boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.6)',
+        },
+        button: {
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'center',
+            padding: '12px 16px',
+            border: 'none',
+            borderRadius: '8px',
+            boxShadow: '0 4px 6px -1px rgba(255, 87, 34, 0.4)',
+            fontSize: '1.25rem',
+            fontWeight: '700',
+            color: 'white',
+            backgroundColor: '#ff5722', // Rojo Primario
+            cursor: 'pointer',
+            transition: 'background-color 0.15s ease-in-out',
+        },
+        buttonHover: {
+            backgroundColor: '#e64a19', // Rojo Oscuro en hover
+        },
+        buttonDisabled: {
+            opacity: 0.5,
+            cursor: 'not-allowed',
+        },
+        linkButton: { // NUEVO ESTILO DE BOTÓN DE NAVEGACIÓN
+            width: '100%',
+            backgroundColor: 'transparent',
+            color: '#ff5722', // Link en color Primario
+            border: 'none',
+            padding: '8px 0',
+            textAlign: 'center',
+            fontSize: '0.9rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'color 0.15s ease-in-out',
+            marginTop: '10px'
+        },
+        linkButtonHover: {
+            textDecoration: 'underline',
+            color: '#e64a19' 
+        },
+        messageBase: {
+            padding: '12px',
+            borderRadius: '8px',
+            fontWeight: '600',
+            marginBottom: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+        },
+        messageSuccess: {
+            backgroundColor: '#154030', // Fondo verde oscuro para éxito
+            color: '#10b981', // Texto verde para éxito
+            borderColor: '#059669',
+        },
+        messageError: {
+            backgroundColor: '#401818', // Fondo rojo oscuro para error
+            color: '#ef4444', // Texto rojo para error
+            borderColor: '#dc2626',
+        },
+        spinner: {
+            marginRight: '12px',
+            height: '20px',
+            width: '20px',
+            animation: 'spin 1s linear infinite',
+            // El color del spinner se define por el color del texto del botón, lo ajustamos en el JSX
+        },
+        '@keyframes spin': {
+            from: { transform: 'rotate(0deg)' },
+            to: { transform: 'rotate(360deg)' },
+        }
+    };
+    
     return (
         <div style={styles.container}>
             <div style={styles.card}>
                 <h1 style={styles.header}>
-                    Crear Cuenta (Registro)
+                    Crea tu cuenta en Mercado Fake
                 </h1>
                 <p style={styles.subtitle}>
                     Ingresa tus datos. Se requiere el formato de teléfono internacional (ej: +525512345678).
@@ -214,7 +236,7 @@ const SignupScreen = () => {
                                 htmlFor={field.name} 
                                 style={styles.label}
                             >
-                                {field.label} {field.required && <span style={{ color: '#ef4444' }}>*</span>}
+                                {field.label} {field.required && <span style={{ color: '#ff5722' }}>*</span>} 
                             </label>
                             <input
                                 id={field.name}
@@ -226,9 +248,6 @@ const SignupScreen = () => {
                                 required={field.required}
                                 disabled={loading}
                                 style={styles.input}
-                                // Añadir manejo de focus para estilos más dinámicos si fuera necesario
-                                onFocus={(e) => e.target.style.borderColor = styles.inputFocus.borderColor}
-                                onBlur={(e) => e.target.style.borderColor = styles.input.borderColor}
                             />
                         </div>
                     ))}
@@ -242,10 +261,20 @@ const SignupScreen = () => {
                     >
                         {loading ? (
                             <svg style={styles.spinner} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" style={{ opacity: 0.25 }}></circle>
+                                <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" style={{ opacity: 0.75 }}></path>
                             </svg>
                         ) : 'REGISTRARME'}
+                    </button>
+                    
+                    {/* Botón de Redirección a Login */}
+                    <button
+                        onClick={handleLoginClick}
+                        style={styles.linkButton}
+                        onMouseEnter={(e) => e.currentTarget.style.textDecoration = styles.linkButtonHover.textDecoration}
+                        onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                    >
+                        Ya tengo una cuenta
                     </button>
                 </form>
             </div>

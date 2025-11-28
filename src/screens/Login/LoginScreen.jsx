@@ -7,7 +7,7 @@ import { setCredentials } from '../../redux/slices/authSlice';
 // URL base de la API, asumimos que está corriendo en localhost:8000
 
 const LoginScreen = ({ onLogin }) => {
-    // Definición de campos
+    // ... (rest of the state and handlers remain unchanged)
     const [formData, setFormData] = useState({
         id_key: '',
         email: '',
@@ -16,7 +16,6 @@ const LoginScreen = ({ onLogin }) => {
     const [error, setError] = useState('');
 
     const dispatch = useDispatch();
-
     const navigate = useNavigate()
 
     // Función para manejar los cambios en los inputs
@@ -32,7 +31,6 @@ const LoginScreen = ({ onLogin }) => {
         // Llama a una función externa para manejar el estado de la sesión
         navigate("/")
     };
-
     // Función para manejar la navegación a la pantalla de registro
     const handleSignupClick = (e) => {
         e.preventDefault();
@@ -67,7 +65,6 @@ const LoginScreen = ({ onLogin }) => {
                     email: clientData.email,
                     name: clientData.name
                 }));
-
                 setLoading(false);
                 handleRedirect();
             } else {
@@ -78,7 +75,6 @@ const LoginScreen = ({ onLogin }) => {
 
         } catch (error) {
             setLoading(false);
-
             let errorMessage = 'Error al intentar iniciar sesión.';
             if (error.response && error.response.status === 404) {
                 errorMessage = 'ID de Cliente no encontrado.';
@@ -91,12 +87,11 @@ const LoginScreen = ({ onLogin }) => {
             setError(errorMessage);
         }
     };
-
     // Estilos CSS estándar
     const styles = {
         container: {
             minHeight: '100vh',
-            backgroundColor: '#f9fafb',
+            backgroundColor: '#121212', // Nuevo fondo oscuro
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -106,23 +101,23 @@ const LoginScreen = ({ onLogin }) => {
         card: {
             width: '100%',
             maxWidth: '400px',
-            backgroundColor: '#fff',
+            backgroundColor: '#1e1e1e', // Fondo de tarjeta oscuro
             padding: '32px',
             borderRadius: '12px',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-            border: '1px solid #f3f4f6',
+            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.5)', // Sombra más prominente
+            border: '1px solid #424242', // Borde gris oscuro
         },
         header: {
-            fontSize: '2rem',
-            fontWeight: '800',
-            color: '#1f2937',
+            fontSize: '2.5rem', // Título más grande
+            fontWeight: '900', // Más grueso
+            color: '#ff5722', // Rojo Primario (Mercado Fake)
             textAlign: 'center',
             marginBottom: '16px',
         },
         subtitle: {
             textAlign: 'center',
-            fontSize: '0.875rem',
-            color: '#6b7280',
+            fontSize: '1rem', // Texto ligeramente más grande
+            color: '#bdbdbd', // Gris claro para subtítulo
             marginBottom: '32px',
         },
         formGroup: {
@@ -130,18 +125,20 @@ const LoginScreen = ({ onLogin }) => {
         },
         label: {
             display: 'block',
-            fontSize: '0.875rem',
+            fontSize: '0.9rem', // Etiqueta más legible
             fontWeight: '600',
-            color: '#374151',
+            color: '#e0e0e0', // Texto claro
             marginBottom: '4px',
         },
         input: {
             width: '100%',
             padding: '10px 16px',
-            border: '1px solid #d1d5db',
+            border: '1px solid #424242', // Borde oscuro
             borderRadius: '8px',
             transition: 'all 0.15s ease-in-out',
-            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+            boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.6)',
+            backgroundColor: '#2e2e2e', // Fondo de input oscuro
+            color: '#e0e0e0', // Texto de input claro
         },
         button: {
             width: '100%',
@@ -150,23 +147,23 @@ const LoginScreen = ({ onLogin }) => {
             padding: '12px 16px',
             border: 'none',
             borderRadius: '8px',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-            fontSize: '1.125rem',
+            boxShadow: '0 4px 6px -1px rgba(255, 87, 34, 0.4)', // Sombra con color primario
+            fontSize: '1.25rem', // Botón más grande
             fontWeight: '700',
             color: 'white',
-            backgroundColor: '#10b981', // Estilo primario verde
+            backgroundColor: '#ff5722', // Rojo Primario
             cursor: 'pointer',
             transition: 'background-color 0.15s ease-in-out',
         },
         buttonHover: {
-            backgroundColor: '#059669',
+            backgroundColor: '#e64a19', // Rojo Oscuro en hover
         },
         buttonDisabled: {
             opacity: 0.5,
             cursor: 'not-allowed',
         },
         errorText: {
-            color: '#ef4444', // Rojo
+            color: '#ef4444', // Rojo estándar para error
             fontWeight: 'bold',
             textAlign: 'center',
             marginBottom: '10px',
@@ -177,11 +174,13 @@ const LoginScreen = ({ onLogin }) => {
             height: '20px',
             width: '20px',
             animation: 'spin 1s linear infinite',
+            // Color del spinner
+            borderTopColor: '#ff5722', 
         },
         linkButton: {
             width: '100%',
             backgroundColor: 'transparent',
-            color: '#2563eb', // Link color azul
+            color: '#ff5722', // Link en color Primario
             border: 'none',
             padding: '8px 0',
             textAlign: 'center',
@@ -193,7 +192,7 @@ const LoginScreen = ({ onLogin }) => {
         },
         linkButtonHover: {
             textDecoration: 'underline',
-            color: '#1d4ed8'
+            color: '#e64a19' // Link hover en color Primario Oscuro
         },
         '@keyframes spin': {
             from: { transform: 'rotate(0deg)' },
@@ -201,12 +200,11 @@ const LoginScreen = ({ onLogin }) => {
         }
     };
 
-
     return (
         <div style={styles.container}>
             <div style={styles.card}>
                 <h1 style={styles.header}>
-                    Iniciar Sesión
+                    Mercado Fake
                 </h1>
                 <p style={styles.subtitle}>
                     Accede con tu ID de Cliente y correo electrónico.
@@ -215,47 +213,58 @@ const LoginScreen = ({ onLogin }) => {
                 <form onSubmit={handleSubmit}>
 
                     <div style={styles.formGroup}>
+                        
                         <label htmlFor="id_key" style={styles.label}>
                             ID de Cliente
                         </label>
                         <input
+                    
                             id="id_key"
                             name="id_key"
                             type="number"
                             value={formData.id_key}
+        
                             onChange={handleChange}
                             placeholder="Tu ID numérico (ej: 1, 2)"
                             required
+                   
                             disabled={loading}
                             style={styles.input}
                         />
                     </div>
 
+                   
                     <div style={styles.formGroup}>
                         <label htmlFor="email" style={styles.label}>
                             Correo Electrónico
                         </label>
+                   
                         <input
                             id="email"
                             name="email"
                             type="email"
+           
                             value={formData.email}
                             onChange={handleChange}
                             placeholder="Tu email de registro"
+                        
                             required
                             disabled={loading}
                             style={styles.input}
                         />
+                
                     </div>
 
                     {/* Mensaje de Error (letras rojas por encima del botón) */}
                     {error && <p style={styles.errorText}>{error}</p>}
 
                     <button
+                       
                         type="submit"
                         disabled={loading}
                         style={{
                             ...styles.button,
+                       
                             ...(loading ? styles.buttonDisabled : {})
                         }}
                         onMouseEnter={(e) => {
@@ -265,21 +274,26 @@ const LoginScreen = ({ onLogin }) => {
                             if (!loading) e.currentTarget.style.backgroundColor = styles.button.backgroundColor;
                         }}
                     >
-                        {loading ? (
+                        {loading ?
+                        (
                             <svg style={styles.spinner} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" style={{ opacity: 0.25 }}></circle>
+                        
                                 <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" style={{ opacity: 0.75 }}></path>
                             </svg>
                         ) : 'INICIAR SESIÓN'}
+            
                     </button>
 
                     {/* Botón de Redirección a Registro */}
                     <button
                         onClick={handleSignupClick}
+                      
                         style={styles.linkButton}
                         onMouseEnter={(e) => e.currentTarget.style.textDecoration = styles.linkButtonHover.textDecoration}
                         onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
                     >
+                      
                         No tengo una cuenta
                     </button>
                 </form>
