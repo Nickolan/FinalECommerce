@@ -36,11 +36,11 @@ const MyOrdersScreen = () => {
         
         try {
             // Asumimos que el endpoint GET /orders soporta el filtrado por client_id
-            const url = `/orders?client_id=${client_id}&skip=0&limit=100`;
+            const url = `/clients/${client_id}`;
             const response = await axios.get(url);
             
             // Ordenar los pedidos por fecha descendente
-            const sortedOrders = response.data.sort((a, b) => 
+            const sortedOrders = response.data.orders.sort((a, b) => 
                 new Date(b.date) - new Date(a.date)
             );
             
@@ -110,7 +110,7 @@ const MyOrdersScreen = () => {
             ) : (
                 <div style={styles.orderList}>
                     {orders.map((order) => (
-                        <div key={order.id_key} style={styles.orderCard}>
+                        <div key={order.id_key} onClick={() => navigate(`/orders/${order.id_key}`)} style={styles.orderCard}>
                             <div style={styles.orderHeader}>
                                 <span style={styles.orderId}>Pedido #{order.id_key}</span>
                                 <span style={styles.orderStatus(order.status)}>

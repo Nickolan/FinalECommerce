@@ -7,6 +7,7 @@ import axios from 'axios';
 
 // Importar acciones del carrito de Redux Toolkit
 // Rutas corregidas asumiendo que este archivo está en el root (o un nivel superior a redux/)
+// IMPORTANTE: ASUMIMOS QUE addItemToCart PUEDE MANEJAR LA CANTIDAD COMPLETA.
 import { addItemToCart } from '../../redux/slices/cartSlice'; 
 
 // --- CONFIGURACIÓN ESTATICAS Y FUNCIONES LOCALES ---
@@ -25,10 +26,14 @@ const ProductDetailsScreen = () => {
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [quantity, setQuantity] = useState(1); // Cantidad a añadir al carrito
+    const [quantity, setQuantity] = useState(1); // Cantidad a añadir al carrito <--- ESTADO DE CANTIDAD
+    const [addedToCart, setAddedToCart] = useState(false); // Estado para la notificación de éxito
 
     // Estado global de autenticación (para validar si puede comprar/comentar)
     const { isLoggedIn } = useSelector(state => state.auth);
+    // Obtener stock actual del carrito para calcular el máximo permitido
+    const cartItem = useSelector(state => state.cart.items.find(item => item.product_id === parseInt(productId)));
+
 
     // =========================================================================
     // I. CARGA DE DATOS DEL PRODUCTO Y RESEÑAS
@@ -46,7 +51,7 @@ const ProductDetailsScreen = () => {
             // Cargar Reseñas para el producto 
             // Asumimos que la API SÍ soporta el filtro por product_id en el query string
             const reviewsResponse = await axios.get(`/reviews?product_id=${productId}`);
-            const reviewsData = reviewsResponse.data;
+            const reviewsData = productData.reviews
             
             // Adjuntar la URL de imagen forzada
             productData.imageUrl = getForcedImageUrl(productData.id_key);
@@ -60,48 +65,61 @@ const ProductDetailsScreen = () => {
         } finally {
             setLoading(false);
         }
-    }, [productId]); // Dependencia del ID de la URL
+    }, [productId]); 
 
     useEffect(() => {
         if (productId) {
             fetchProductDetails();
         }
-    }, [productId, fetchProductDetails]); // fetchProductDetails se usa como dependencia para useCallback/useEffect
+    }, [productId, fetchProductDetails]); 
 
 
     // =========================================================================
     // II. LÓGICA DEL CARRITO
     // =========================================================================
     
+    // Lógica para limitar la cantidad máxima que se puede comprar
+    const maxQuantity = useMemo(() => {
+        if (!product) return 1;
+        // El stock total menos lo que ya está en el carrito
+        const currentCartQuantity = cartItem ? cartItem.quantity : 0;
+        return product.stock - currentCartQuantity;
+    }, [product, cartItem]); 
+    
     // Handler para agregar el producto al carrito (dispatch a Redux)
     const handleAddToCart = () => {
         if (!isLoggedIn) {
-            // Usar la función navigate de react-router-dom para la redirección
             navigate('/login'); 
             return;
         }
 
-        if (!product || product.stock < quantity) {
-            alert('Error: Stock insuficiente o producto no disponible.');
+        if (!product || maxQuantity < quantity || quantity <= 0) {
+            alert('Error: La cantidad solicitada excede el stock disponible o es inválida.');
             return;
         }
 
-        // 1. Dispatch de la acción de Redux Toolkit
+        // 1. Dispatch de la acción de Redux Toolkit con la CANTIDAD seleccionada
         dispatch(addItemToCart({
             product_id: product.id_key,
             name: product.name,
             price: product.price,
-            quantity: quantity, // Usamos la cantidad seleccionada
+            quantity: quantity, // <-- CORRECCIÓN CLAVE: Enviar la cantidad
         }));
         
-        // 2. Notificación y limpieza (opcional)
-        // Reemplazar alert() por una notificación modal o mensaje en pantalla
-        alert(`${quantity} unidad(es) de ${product.name} agregada(s) al carrito!`);
+        // 2. Notificación y limpieza 
+        setAddedToCart(true);
+        setTimeout(() => setAddedToCart(false), 3000); // Ocultar mensaje después de 3s
         setQuantity(1); // Resetear selector de cantidad
     };
     
-    // Lógica para limitar la cantidad máxima que se puede comprar
-    const maxQuantity = useMemo(() => product ? product.stock : 1, [product]);
+    // Manejar el cambio del input numérico
+    const handleQuantityChange = (e) => {
+        let value = parseInt(e.target.value) || 1;
+        
+        // Limitar la cantidad para que no exceda el stock disponible
+        const limitedValue = Math.max(1, Math.min(maxQuantity, value));
+        setQuantity(limitedValue);
+    };
 
     // =========================================================================
     // III. RENDERIZADO
@@ -111,30 +129,29 @@ const ProductDetailsScreen = () => {
     const styles = {
         container: { maxWidth: '1000px', margin: '40px auto', padding: '20px', fontFamily: 'Arial, sans-serif' },
         loadingText: { textAlign: 'center', fontSize: '1.2rem', color: '#555' },
-        // Contenedor Superior (Detalles)
         topContainer: { 
             display: 'flex', 
             gap: '40px', 
             borderBottom: '1px solid #e0e0e0', 
             paddingBottom: '30px', 
             marginBottom: '30px',
-            flexWrap: 'wrap', // Responsive básico
+            flexWrap: 'wrap', 
         },
         imageContainer: { 
             flex: 1, 
-            minWidth: '300px', // Mínimo para móvil
+            minWidth: '300px', 
             maxWidth: '450px', 
             borderRadius: '8px', 
             overflow: 'hidden', 
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-            order: 1 // Orden inicial
+            order: 1 
         },
         productImage: { width: '100%', height: 'auto', display: 'block' },
         infoContainer: { 
             flex: 1, 
-            minWidth: '300px', // Mínimo para móvil
+            minWidth: '300px', 
             padding: '10px 0',
-            order: 2 // Orden inicial
+            order: 2 
         },
         productName: { fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '10px', color: '#333' },
         productPrice: { fontSize: '2rem', color: '#10b981', fontWeight: '700', marginBottom: '15px' },
@@ -154,12 +171,21 @@ const ProductDetailsScreen = () => {
             transition: 'background-color 0.2s',
             boxShadow: '0 4px 6px rgba(59, 130, 246, 0.3)', 
         },
-        
-        // Contenedor Inferior (Reviews)
         reviewsContainer: { padding: '20px', border: '1px solid #e0e0e0', borderRadius: '8px', backgroundColor: '#f9f9f9' },
         reviewItem: { border: '1px solid #ddd', padding: '15px', borderRadius: '5px', marginBottom: '15px', backgroundColor: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' },
         reviewRating: { fontWeight: 'bold', color: '#f59e0b', fontSize: '1.2rem' },
-        reviewComment: { color: '#6b7280', marginTop: '5px', fontSize: '0.95rem' }
+        reviewComment: { color: '#6b7280', marginTop: '5px', fontSize: '0.95rem' },
+        
+        // Estilo para la notificación de éxito
+        successNotification: {
+            backgroundColor: '#d4edda', 
+            color: '#155724', 
+            padding: '15px', 
+            borderRadius: '5px', 
+            marginTop: '15px', 
+            fontWeight: 'bold',
+            textAlign: 'center'
+        }
     };
 
     if (loading) {
@@ -194,22 +220,29 @@ const ProductDetailsScreen = () => {
                     <p style={styles.productPrice}>${product.price.toFixed(2)}</p>
 
                     <p style={styles.stockText}>
-                        {product.stock > 0 ? `En Stock: ${product.stock} unidades` : 'AGOTADO'}
+                        {maxQuantity > 0 ? `Stock disponible para agregar: ${maxQuantity} unidades` : 
+                        (product.stock > 0 ? 'Todas las unidades están en tu carrito.' : 'AGOTADO')}
                     </p>
 
                     <p style={{ marginBottom: '20px', color: '#555' }}>
-                        {/* Descripción genérica, ya que el modelo no tiene 'description' */}
                         Este es un producto de alta calidad de FinalCommerce. Cómpralo ahora y disfruta de la mejor experiencia.
                     </p>
+                    
+                    {addedToCart && (
+                        <div style={styles.successNotification}>
+                            Producto(s) agregado(s) al carrito.
+                        </div>
+                    )}
+
 
                     {/* Controlador de Carrito */}
-                    {product.stock > 0 && (
+                    {maxQuantity > 0 && (
                         <div style={styles.cartControls}>
-                            <label style={styles.label}>Cantidad:</label>
+                            <label style={styles.label}>Cantidad a agregar:</label>
                             <input
                                 type="number"
                                 value={quantity}
-                                onChange={(e) => setQuantity(Math.max(1, Math.min(maxQuantity, parseInt(e.target.value) || 1)))}
+                                onChange={handleQuantityChange}
                                 min="1"
                                 max={maxQuantity}
                                 disabled={maxQuantity === 0}
@@ -217,12 +250,12 @@ const ProductDetailsScreen = () => {
                             />
                             <button 
                                 onClick={handleAddToCart}
-                                disabled={maxQuantity === 0 || quantity > maxQuantity}
+                                disabled={maxQuantity === 0 || quantity > maxQuantity || quantity <= 0}
                                 style={styles.addButton}
                                 onMouseEnter={(e) => e.target.style.backgroundColor = '#2563eb'}
                                 onMouseLeave={(e) => e.target.style.backgroundColor = styles.addButton.backgroundColor}
                             >
-                                Agregar al Carrito
+                                Agregar {quantity} al Carrito
                             </button>
                         </div>
                     )}

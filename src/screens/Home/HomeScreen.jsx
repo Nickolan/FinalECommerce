@@ -66,15 +66,19 @@ const HomeScreen = () => {
         let url = `/products?skip=${skip}&limit=${productsPerPage}`;
         
         // Asumimos que la API soporta filtrar por category_id para que el filtro funcione
-        if (selectedCategoryId) {
-             url += `&category_id=${selectedCategoryId}`;
-        }
+        
         
         try {
             const response = await axios.get(url);
+            let data = response.data;
+            console.log(data);
+            
+            if (selectedCategoryId) {
+                data = response.data.filter(e => e.category_id == selectedCategoryId)
+            }
 
             // Si la respuesta es una lista (como lo es en tu API):
-            const fetchedProducts = response.data.map(p => ({
+            const fetchedProducts = data.map(p => ({
                 ...p,
                 // Añadir imagen forzada al objeto del producto
                 imageUrl: getForcedImageUrl(p.id_key) 
