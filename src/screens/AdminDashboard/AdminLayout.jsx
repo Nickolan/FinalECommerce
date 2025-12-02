@@ -1,154 +1,204 @@
-// src/screens/AdminDashboard/AdminLayout.jsx
-
-import React from 'react';
-import { useNavigate, Outlet, useLocation } from 'react-router-dom';
-import { CiGrid41, CiUser, CiShoppingCart, CiBoxList, CiMoneyBill, CiDeliveryTruck, CiLogout } from "react-icons/ci";
+import React, { useMemo } from 'react';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { logout } from '../../redux/slices/authSlice';
-import { clearCart } from '../../redux/slices/cartSlice';
+import { 
+    IoSpeedometerOutline, IoCubeOutline, IoReceiptOutline, 
+    IoPeopleOutline, IoChatbubblesOutline, IoLogOutOutline, IoSettingsOutline 
+} from "react-icons/io5";
+import { RiBillLine } from "react-icons/ri";
+import { BiCategory } from "react-icons/bi";
+
+// =========================================================================
+// I. CONFIGURACIÓN Y LINKS
+// =========================================================================
+
+const adminNavLinks = [
+    { name: 'Dashboard', path: '/admin', icon: IoSpeedometerOutline },
+    { name: 'Clientes', path: '/admin/clients', icon: IoPeopleOutline },
+    { name: 'Categorias', path: '/admin/categories', icon: BiCategory },
+    { name: 'Productos', path: '/admin/products', icon: IoCubeOutline },
+    { name: 'Facturas', path: '/admin/bills', icon: RiBillLine },
+    { name: 'Órdenes', path: '/admin/orders', icon: IoReceiptOutline },
+];
 
 const AdminLayout = () => {
     const navigate = useNavigate();
-    const location = useLocation();
     const dispatch = useDispatch();
+    const location = useLocation();
 
-    // Lista de enlaces de la barra lateral (Sidebar)
-    const navLinks = [
-        { name: "Dashboard", path: "/admin", icon: <CiGrid41 size={20} /> },
-        { name: "Clientes", path: "/admin/clients", icon: <CiUser size={20} /> },
-        { name: "Pedidos", path: "/admin/orders", icon: <CiDeliveryTruck size={20} /> },
-        { name: "Productos", path: "/admin/products", icon: <CiBoxList size={20} /> },
-        { name: "Categorías", path: "/admin/categories", icon: <CiShoppingCart size={20} /> },
-        { name: "Facturas", path: "/admin/bills", icon: <CiMoneyBill size={20} /> },
-    ];
-    
-    // Función para manejar el cierre de sesión del administrador
+    // Handler para cerrar sesión
     const handleLogout = () => {
-        dispatch(logout()); 
-        dispatch(clearCart()); 
-        navigate('/login'); 
+        if (window.confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+            dispatch(logout());
+            navigate('/login'); // Redirigir a la pantalla de login
+        }
     };
-
-    // Estilos CSS estándar
-    const styles = {
-        mainContainer: {
-            display: 'flex',
-            minHeight: '100vh',
-            fontFamily: 'Arial, sans-serif',
-            backgroundColor: '#f4f4f9', 
-        },
-        sidebar: {
-            width: '250px',
-            backgroundColor: '#1f2937', // Fondo negro/gris oscuro
-            color: 'white',
-            padding: '20px 0',
-            display: 'flex',
+    
+    // Ancho de la barra lateral
+    const SIDEBAR_WIDTH = '250px';
+    
+    // =========================================================================
+    // III. ESTILOS (Mercado Fake Admin Style) - CORRECCIÓN DE LAYOUT
+    // =========================================================================
+    
+    const styles = useMemo(() => ({
+        // Layout Principal
+        container: { display: 'flex', minHeight: '100vh', backgroundColor: '#121212', color: '#e0e0e0', fontFamily: 'Arial, sans-serif' },
+        
+        // Sidebar Fijo
+        sidebar: { 
+            backgroundColor: '#1e1e1e', // Fondo de la barra lateral
+            padding: '20px', 
+            boxShadow: '4px 0 10px rgba(0, 0, 0, 0.5)', 
+            display: 'flex', 
             flexDirection: 'column',
-            position: 'sticky',
+            position: 'fixed', // Mantiene la barra fija
             top: 0,
-            height: '100vh',
-            boxShadow: '2px 0 5px rgba(0, 0, 0, 0.2)',
+            bottom: 0,
+            overflowY: 'auto',
+            zIndex: 100 // Asegura que esté por encima del contenido
         },
-        logo: {
-            fontSize: '1.8rem',
-            fontWeight: '900',
-            color: '#10b981', // Verde brillante
+        logo: { 
+            fontSize: '1.8rem', 
+            fontWeight: 'bold', 
+            color: '#ff5722', 
+            marginBottom: '30px', 
             textAlign: 'center',
-            marginBottom: '30px',
-            padding: '0 20px',
-            cursor: 'pointer',
+            borderBottom: '2px solid #424242',
+            paddingBottom: '15px'
         },
-        nav: {
-            flexGrow: 1,
-            padding: '0 10px',
+        navGroup: { flexGrow: 1 },
+        
+        // Estilos de NavLink
+        navItem: {
+            display: 'flex', 
+            alignItems: 'center', 
+            padding: '12px 15px', 
+            borderRadius: '6px', 
+            marginBottom: '10px',
+            textDecoration: 'none', 
+            color: '#bdbdbd', 
+            transition: 'all 0.2s',
+            fontWeight: '600'
         },
-        navLink: (isActive) => ({
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            padding: '12px 15px',
-            margin: '5px 0',
-            borderRadius: '6px',
-            textDecoration: 'none',
-            color: 'white',
-            backgroundColor: isActive ? '#3b82f6' : 'transparent', // Azul para activo
-            fontWeight: isActive ? 'bold' : 'normal',
-            cursor: 'pointer',
-            transition: 'background-color 0.15s, transform 0.1s',
-        }),
-        content: {
-            flexGrow: 1,
-            backgroundColor: 'white', // Fondo principal blanco
-            color: 'black',
-            padding: '30px',
-            boxShadow: 'inset 0 0 10px rgba(0,0,0,0.05)',
+        navItemActive: {
+            backgroundColor: '#ff5722', 
+            color: '#ffffff', 
+            fontWeight: '700',
+            boxShadow: '0 2px 5px rgba(255, 87, 34, 0.4)'
         },
+        navItemHover: { 
+            backgroundColor: '#2e2e2e', 
+            color: '#ff5722' 
+        },
+        iconStyle: { marginRight: '10px', fontSize: '1.2rem' },
+        
+        // Botón de Logout
         logoutButton: {
-            marginTop: 'auto', 
-            padding: '15px 20px',
-            backgroundColor: '#ef4444', 
-            color: 'white',
-            border: 'none',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            textAlign: 'center',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '10px',
+            marginTop: '20px',
+            padding: '12px 15px',
+            backgroundColor: '#424242', 
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: '600',
             transition: 'background-color 0.2s',
-        }
+        },
+        logoutButtonHover: {
+            backgroundColor: '#dc2626', 
+        },
+        
+        // Contenido Principal (CORRECCIÓN APLICADA AQUÍ)
+        mainContent: { 
+            flexGrow: 1, 
+            padding: '30px',
+            // Añade un margen a la izquierda para empujar el contenido más allá del sidebar fijo
+            marginLeft: SIDEBAR_WIDTH, 
+            width: `calc(100% - ${SIDEBAR_WIDTH})`, // Opcional, asegura el ancho
+            boxSizing: 'border-box', // Asegura que el padding no desborde el width
+        },
+        mainHeader: { 
+            fontSize: '2rem', 
+            fontWeight: 'bold', 
+            color: '#ff5722', 
+            marginBottom: '30px', 
+            borderBottom: '2px solid #424242', 
+            paddingBottom: '10px' 
+        },
+    }), []);
+
+    // Función para combinar estilos de NavLink
+    const getNavLinkStyle = ({ isActive }) => {
+        const baseStyle = styles.navItem;
+        const activeStyle = isActive ? styles.navItemActive : {};
+        
+        return {
+            ...baseStyle,
+            ...activeStyle,
+            // Agregar un handler onMouseEnter/onMouseLeave para simular el :hover
+            onMouseEnter: (e) => {
+                if (!isActive) {
+                    Object.assign(e.currentTarget.style, styles.navItemHover);
+                }
+            },
+            onMouseLeave: (e) => {
+                 if (!isActive) {
+                    Object.assign(e.currentTarget.style, styles.navItem);
+                }
+            }
+        };
     };
 
-    const handleLinkHover = (e, isActive) => {
-        if (!isActive) {
-            e.currentTarget.style.backgroundColor = '#374151'; 
-        }
-    };
-    
+    // Determinar el título de la página actual
+    const currentPageTitle = useMemo(() => {
+        const activeLink = adminNavLinks.find(link => location.pathname === link.path);
+        return activeLink ? activeLink.name : 'Panel de Administración';
+    }, [location.pathname]);
+
     return (
-        <div style={styles.mainContainer}>
-            {/* Sidebar Negro */}
-            <div style={styles.sidebar}>
-                <div style={styles.logo} onClick={() => navigate('/admin')}>
-                    Admin Panel
+        <div style={styles.container}>
+            {/* Sidebar Fijo */}
+            <nav style={styles.sidebar}>
+                <div style={styles.logo}>
+                    MERCADO FAKE <br/><span style={{fontSize: '0.8rem', color: '#bdbdbd'}}>ADMIN</span>
                 </div>
                 
-                <nav style={styles.nav}>
-                    {navLinks.map(link => {
-                        // Resalta el enlace activo
-                        const isActive = location.pathname === link.path || (link.path === '/admin' && location.pathname === '/admin/');
-                        return (
-                            <div 
-                                key={link.name}
-                                style={styles.navLink(isActive)} 
-                                onClick={() => navigate(link.path)}
-                                onMouseEnter={(e) => handleLinkHover(e, isActive)}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = styles.navLink(isActive).backgroundColor}
-                            >
-                                {link.icon}
-                                {link.name}
-                            </div>
-                        );
-                    })}
-                </nav>
-                
-                {/* Botón de Logout en la base */}
+                <div style={styles.navGroup}>
+                    {adminNavLinks.map(({ name, path, icon: Icon }) => (
+                        <NavLink
+                            key={path}
+                            to={path}
+                            style={getNavLinkStyle}
+                            end={path === '/admin'} 
+                        >
+                            <Icon style={styles.iconStyle} />
+                            {name}
+                        </NavLink>
+                    ))}
+                </div>
+
+                {/* Botón de Logout */}
                 <button 
-                    style={styles.logoutButton} 
-                    onClick={handleLogout}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = '#dc2626'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = styles.logoutButton.backgroundColor}
+                    onClick={handleLogout} 
+                    style={styles.logoutButton}
+                    onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.logoutButton, styles.logoutButtonHover)}
+                    onMouseLeave={(e) => Object.assign(e.currentTarget.style, styles.logoutButton)}
                 >
-                    <CiLogout size={20} />
+                    <IoLogOutOutline style={styles.iconStyle} />
                     Cerrar Sesión
                 </button>
-            </div>
-            
-            {/* Contenido Principal Blanco */}
-            <div style={styles.content}>
+            </nav>
+
+            {/* Contenido Principal */}
+            <main style={styles.mainContent}>
+                 <h1 style={styles.mainHeader}>{currentPageTitle}</h1>
                 <Outlet />
-            </div>
+            </main>
         </div>
     );
 };

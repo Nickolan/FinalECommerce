@@ -68,7 +68,11 @@ const HomeScreen = () => {
         
         
         try {
+            console.log("Hola");
+            
             const response = await axios.get(url);
+            console.log(response.data);
+            
             let data = response.data;
             console.log(data);
          
@@ -83,7 +87,7 @@ const HomeScreen = () => {
                 // Añadir imagen forzada al objeto del producto
                 imageUrl: getForcedImageUrl(p.id_key) 
             }));
-// Simulación del total de productos para la paginación:
+            // Simulación del total de productos para la paginación:
             // Si obtenemos exactamente el límite, asumimos que hay una página más.
             const simulatedTotal = fetchedProducts.length < productsPerPage 
                 ? skip + fetchedProducts.length 
