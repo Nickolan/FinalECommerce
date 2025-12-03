@@ -4,7 +4,8 @@ import { useDispatch } from 'react-redux';
 import { logout } from '../../redux/slices/authSlice';
 import { 
     IoSpeedometerOutline, IoCubeOutline, IoReceiptOutline, 
-    IoPeopleOutline, IoChatbubblesOutline, IoLogOutOutline, IoSettingsOutline 
+    IoPeopleOutline, IoChatbubblesOutline, IoLogOutOutline, IoSettingsOutline, 
+    IoHeartCircleOutline
 } from "react-icons/io5";
 import { RiBillLine } from "react-icons/ri";
 import { BiCategory } from "react-icons/bi";
@@ -20,6 +21,7 @@ const adminNavLinks = [
     { name: 'Productos', path: '/admin/products', icon: IoCubeOutline },
     { name: 'Facturas', path: '/admin/bills', icon: RiBillLine },
     { name: 'Órdenes', path: '/admin/orders', icon: IoReceiptOutline },
+    { name: 'Salud Sistema', path: '/admin/health', icon: IoHeartCircleOutline },
 ];
 
 const AdminLayout = () => {

@@ -1,3 +1,5 @@
+// --- INICIO DEL ARCHIVO: src\screens\ProfileUpdate\UpdateProfileScreen.jsx ---
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux'; // <-- Importación corregida
 import { useNavigate } from 'react-router-dom';
@@ -20,7 +22,7 @@ const UpdateProfileScreen = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
-    // Campos del formulario
+// Campos del formulario
     const formFields = [
         { label: 'Nombre', name: 'name', type: 'text', required: true },
         { label: 'Apellido', name: 'lastname', type: 'text', required: true },
@@ -48,6 +50,7 @@ const UpdateProfileScreen = () => {
                     telephone: data.telephone || '',
                 });
             } catch (err) {
+               
                 setError("Error al cargar datos actuales del perfil.");
         
             } finally {
@@ -56,16 +59,46 @@ const UpdateProfileScreen = () => {
         };
         fetchCurrentData();
     }, [client_id, isLoggedIn, navigate]);
+    
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
+
+    // Expresión regular para validar el teléfono internacional (ej: +525512345678)
+    const phoneRegex = /^\+\d{10,15}$/;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
         setSuccessMessage(null);
         setIsSubmitting(true);
+
+        const { name, lastname, telephone } = formData;
+        
+        // --- INICIO DE VALIDACIONES DE FORMATO Y OBLIGATORIEDAD (NUEVO) ---
+        
+        // 1. Campos obligatorios y longitud (1-100 caracteres)
+        if (!name || !lastname || !telephone) {
+            setError('Por favor, complete los campos obligatorios: Nombre, Apellido y Teléfono.');
+            setIsSubmitting(false);
+            return;
+        }
+        
+        if (name.length < 1 || name.length > 100 || lastname.length < 1 || lastname.length > 100) {
+            setError('Nombre y Apellido deben tener entre 1 y 100 caracteres.');
+            setIsSubmitting(false);
+            return;
+        }
+
+        // 2. Validación de Teléfono Internacional (ej: +525512345678)
+        if (!phoneRegex.test(telephone)) {
+            setError('El formato del Teléfono es incorrecto. Debe ser internacional, comenzando con "+" y solo dígitos (ej: +525512345678).');
+            setIsSubmitting(false);
+            return;
+        }
+        
+        // --- FIN DE VALIDACIONES ---
 
         try {
             // PUT /clients/{id}
@@ -77,6 +110,7 @@ const UpdateProfileScreen = () => {
                 dispatch(setCredentials({ 
                     id_key: client_id, 
                     email: response.data.email,
+        
                     name: response.data.name, // Actualizar nombre y apellido en el store si se quiere
                     lastname: response.data.lastname
              
@@ -92,7 +126,7 @@ const UpdateProfileScreen = () => {
             setIsSubmitting(false);
         }
     };
-    // Estilos CSS estándar (ACTUALIZADOS PARA DARK MODE / MERCADO FAKE)
+// Estilos CSS estándar (ACTUALIZADOS PARA DARK MODE / MERCADO FAKE)
     const styles = {
         container: { 
             maxWidth: '600px', 
@@ -159,7 +193,6 @@ const UpdateProfileScreen = () => {
         successBox: { padding: '15px', backgroundColor: '#154030', color: '#10b981', borderRadius: 
         '8px', marginBottom: '15px', border: '1px solid #059669' }
     };
-
     if (loading) return <div style={styles.container}>Cargando datos del perfil...</div>;
     
     return (
@@ -171,33 +204,39 @@ const UpdateProfileScreen = () => {
             {successMessage && <div style={styles.successBox}>{successMessage}</div>}
 
             <form onSubmit={handleSubmit}>
-       
+  
+      
                 {formFields.map((field) => (
                     <div key={field.name} style={styles.formGroup}>
                         <label style={styles.label}>{field.label}</label>
                         <input
-                  
+      
                             type={field.type}
                             name={field.name}
                             value={formData[field.name]}
+    
                             onChange={handleChange}
       
                             placeholder={field.placeholder}
                             required={field.required}
+              
                             disabled={isSubmitting}
                       
                             style={styles.input}
                         />
+            
                     </div>
                 ))}
                 
                 {/* Campo Email (No editable en esta interfaz) */}
                 <div style={styles.formGroup}>
+                   
                     <label style={styles.label}>Correo Electrónico (No Editable)</label>
                     <input
                         type="email"
                         name="email"
                         value={formData.email}
+   
                         disabled={true}
                         style={{...styles.input, ...styles.readOnlyInput}}
                     />
@@ -205,16 +244,18 @@ const UpdateProfileScreen = () => {
 
 
                 <button 
+ 
                  
                     type="submit" 
                     disabled={isSubmitting} 
                     style={styles.button}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = '#e64a19'}
+                    onMouseEnter={(e) => 
+                        e.target.style.backgroundColor = '#e64a19'}
                     onMouseLeave={(e) => e.target.style.backgroundColor = styles.button.backgroundColor}
        
                     >
                     {isSubmitting ?
-'Guardando...' : 'Actualizar'}
+                        'Guardando...' : 'Actualizar'}
                 </button>
 
                 <button 
@@ -222,10 +263,12 @@ const UpdateProfileScreen = () => {
                     onClick={() => navigate('/profile')} 
                     style={styles.cancelButton}
  
+ 
                     onMouseEnter={(e) => e.target.style.backgroundColor = '#616161'}
                     onMouseLeave={(e) => e.target.style.backgroundColor = styles.cancelButton.backgroundColor}
                 >
                     Cancelar
+                
                 </button>
  
             </form>

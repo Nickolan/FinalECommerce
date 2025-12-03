@@ -1,3 +1,5 @@
+// --- INICIO DEL ARCHIVO: src\screens\AdminDashboard\FormsScreens\ProductFormScreen.jsx ---
+
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -24,6 +26,7 @@ const ProductFormScreen = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
+    const [hasOrders, setHasOrders] = useState(false); // <-- NUEVO: Estado para verificar órdenes
 // =========================================================================
     // I. CARGA DE DATOS (Categorías y Producto para Edición)
     // =========================================================================
@@ -58,7 +61,12 @@ const ProductFormScreen = () => {
                 price: data.price || '',
                 stock: data.stock || '',
                 category_id: data.category_id || '',
+            
             });
+            
+            // --- VERIFICACIÓN DE ORDENES (NUEVO) ---
+            // Si el array order_details tiene elementos, no se puede eliminar.
+            setHasOrders(data.order_details && data.order_details.length > 0); 
         
         } catch (err) {
             console.error(`Error fetching product ${productId}:`, err);
@@ -114,7 +122,7 @@ const ProductFormScreen = () => {
 
         try {
             const method = isEditing ?
-                axios.put : axios.post;
+axios.put : axios.post;
             const endpoint = isEditing ? `/products/${productId}` : `/products`;
             
             await method(endpoint, payload);
@@ -137,6 +145,52 @@ const ProductFormScreen = () => {
             setIsSubmitting(false);
         }
     };
+
+    // Handler para Eliminar (si no tiene órdenes) o Desactivar (si tiene órdenes).
+    const handleDeleteOrDeactivate = async () => {
+        setError(null);
+        setSuccessMessage(null);
+        
+        if (!isEditing || !productId) return; 
+
+        const actionType = hasOrders ? 'DESACTIVAR (Stock a 0)' : 'ELIMINAR PERMANENTEMENTE';
+        
+        const confirmation = window.confirm(`ADVERTENCIA: ¿Estás seguro de ${actionType} el Producto ID ${productId}?`);
+        if (!confirmation) return;
+
+        setIsSubmitting(true);
+
+        try {
+            if (hasOrders) {
+                // Caso 1: Tiene órdenes asociadas -> DESACTIVAR (PUT stock: 0)
+                const deactivatePayload = {
+                    name: formData.name,
+                    price: parseFloat(formData.price),
+                    stock: 0, // Forzar stock a cero
+                    category_id: parseInt(formData.category_id, 10),
+                };
+                
+                await axios.put(`/products/${productId}`, deactivatePayload);
+                alert(`✅ Producto ID ${productId} DESACTIVADO con éxito (Stock: 0).`);
+                
+            } else {
+                // Caso 2: No tiene órdenes asociadas -> ELIMINAR (DELETE)
+                await axios.delete(`/products/${productId}`);
+                alert(`✅ Producto ID ${productId} ELIMINADO completamente con éxito.`);
+            }
+            
+            navigate('/admin/products'); // Volver a la lista después de la acción.
+            
+        } catch (err) {
+            console.error(`Error al gestionar el producto ${productId}:`, err);
+            // Manejamos errores generales (comunicación, 404, etc.)
+            setError(`Fallo al gestionar el producto: ${err.response?.data?.detail || 'Error de conexión o API'}.`);
+            
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+    
 // Estilos CSS estándar (ACTUALIZADOS PARA DARK MODE / MERCADO FAKE)
     const styles = {
         container: { padding: '0 10px', maxWidth: '700px', margin: '0 auto', fontFamily: 'Arial, sans-serif', color: '#e0e0e0' },
@@ -144,6 +198,7 @@ const ProductFormScreen = () => {
             fontSize: '2rem', 
             fontWeight: 'bold', 
             marginBottom: '30px', 
+      
             color: isEditing ? '#3b82f6' : '#ff5722', // Azul para editar, Rojo para crear
         }),
         backButton: { 
@@ -151,6 +206,7 @@ const ProductFormScreen = () => {
             alignItems: 'center', 
             gap: '5px', 
             marginBottom: '20px', 
+        
             backgroundColor: '#2e2e2e', 
             color: '#e0e0e0', 
             padding: '8px 15px', 
@@ -158,6 +214,7 @@ const ProductFormScreen = () => {
             cursor: 'pointer', 
             border: '1px solid #424242', 
             fontWeight: '600',
+        
             transition: 'background-color 0.15s'
         },
         form: { 
@@ -165,6 +222,7 @@ const ProductFormScreen = () => {
             borderRadius: '10px', 
             boxShadow: '0 4px 8px rgba(0, 0, 0, 0.4)', 
             backgroundColor: '#1e1e1e', // Fondo de formulario oscuro
+          
             border: '1px solid #424242' 
         },
         formGroup: { marginBottom: '20px' },
@@ -173,6 +231,7 @@ const ProductFormScreen = () => {
             fontSize: '0.9rem', 
             fontWeight: '600', 
             color: '#bdbdbd', 
+        
             marginBottom: '5px' 
         },
         input: { 
@@ -181,6 +240,7 @@ const ProductFormScreen = () => {
             border: '1px solid #424242', 
             borderRadius: '5px',
             backgroundColor: '#2e2e2e',
+      
             color: '#e0e0e0'
         },
         select: { 
@@ -189,6 +249,7 @@ const ProductFormScreen = () => {
             border: '1px solid #424242', 
             borderRadius: '5px', 
             backgroundColor: '#2e2e2e',
+    
             color: '#e0e0e0' 
         },
         buttonGroup: { display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end' },
@@ -196,6 +257,7 @@ const ProductFormScreen = () => {
             padding: '10px 20px', 
             backgroundColor: '#ff5722', // Rojo Primario
             color: 'white', 
+         
             border: 'none', 
             borderRadius: '5px', 
             cursor: 'pointer', 
@@ -204,6 +266,7 @@ const ProductFormScreen = () => {
         },
         cancelButton: { 
             padding: '10px 20px', 
+       
             backgroundColor: '#424242', // Gris oscuro
             color: 'white', 
             border: 'none', 
@@ -211,38 +274,51 @@ const ProductFormScreen = () => {
             cursor: 'pointer',
             transition: 'background-color 0.2s'
         },
-        errorBox: { padding: '12px', backgroundColor: '#401818', color: '#ef4444', borderRadius: '8px', marginBottom: '15px', border: '1px solid #dc2626' },
+        deleteButton: { // <-- NUEVO ESTILO
+            padding: '10px 20px', 
+            backgroundColor: '#ef4444', // Rojo de Peligro
+            color: 'white', 
+            border: 'none', 
+            borderRadius: '5px', 
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            transition: 'background-color 0.2s'
+        },
+        errorBox: { padding: '12px', backgroundColor: '#401818', 
+            color: '#ef4444', borderRadius: '8px', marginBottom: '15px', border: '1px solid #dc2626' },
         successBox: { padding: '12px', backgroundColor: '#154030', color: '#10b981', borderRadius: '8px', marginBottom: '15px', border: '1px solid #059669' },
     };
-    
-    // Handlers de hover
+// Handlers de hover
     const handleBackHover = (e, hover) => {
-        e.currentTarget.style.backgroundColor = hover ? '#383838' : styles.backButton.backgroundColor;
+        e.currentTarget.style.backgroundColor = hover ?
+'#383838' : styles.backButton.backgroundColor;
     };
     const handleSaveHover = (e, hover) => {
-        e.target.style.backgroundColor = hover ? '#e64a19' : styles.saveButton.backgroundColor;
+        e.target.style.backgroundColor = hover ?
+'#e64a19' : styles.saveButton.backgroundColor;
     };
     const handleCancelHover = (e, hover) => {
-        e.target.style.backgroundColor = hover ? '#616161' : styles.cancelButton.backgroundColor;
+        e.target.style.backgroundColor = hover ?
+'#616161' : styles.cancelButton.backgroundColor;
     };
 
 
-if (loading && isEditing) {
+    if (loading && isEditing) {
         return <div style={styles.container}>Cargando datos del producto...</div>;
-}
+    }
     
     // Si no hay categorías, no podemos crear/editar productos
     if (categories.length === 0 && !isEditing) {
         return <div style={styles.container}>
              <h1 style={styles.header(isEditing)}>Crear Producto</h1>
              <div style={styles.errorBox}>
-                 No hay categorías disponibles.
-                Por favor, crea una categoría primero para poder asignar el producto.
+                 No hay categorías disponibles. Por favor, crea una categoría primero para poder asignar el producto.
                 <button 
                     onClick={() => navigate('/admin/categories/new')} 
                     style={{...styles.saveButton, marginLeft: '10px', backgroundColor: '#3b82f6'}} // Azul para ir a crear
                     onMouseEnter={(e) => e.target.style.backgroundColor = '#2563eb'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = '#3b82f6'}
+                    onMouseLeave={(e) => 
+                        e.target.style.backgroundColor = '#3b82f6'}
                 >
                     Ir a Crear Categoría
                  </button>
@@ -253,19 +329,21 @@ if (loading && isEditing) {
 
     return (
         <div style={styles.container}>
+   
             <button 
                 style={styles.backButton} 
                 onClick={() => navigate('/admin/products')}
                 onMouseEnter={(e) => handleBackHover(e, true)}
                 onMouseLeave={(e) => handleBackHover(e, false)}
             >
-             
+     
                 <IoChevronBackCircle size={20} />
                 Volver al Listado
             </button>
             
             <h1 style={styles.header(isEditing)}>
-                {isEditing ? `Editar Producto ID: ${productId}` : 'Crear Nuevo Producto'}
+                {isEditing ?
+                    `Editar Producto ID: ${productId}` : 'Crear Nuevo Producto'}
             </h1>
 
    
@@ -275,77 +353,93 @@ if (loading && isEditing) {
             <form onSubmit={handleSubmit} style={styles.form}>
                 
                 <div style={styles.formGroup}>
+ 
                     <label style={styles.label}>Nombre del Producto</label>
    
                     <input
                         type="text"
                         name="name"
+       
                         value={formData.name}
            
                         onChange={handleChange}
                         placeholder="Ej: Laptop Gamer X1000"
+                     
                         required
                         disabled={isSubmitting}
             
                         style={styles.input}
                     />
                 </div>
+ 
                 
                 <div style={styles.formGroup}>
                    
                     <label style={styles.label}>Precio ($)</label>
                     <input
+       
                         type="text" // Usamos text para controlar mejor el formato numérico
                         name="price"
                     
                         value={formData.price}
+      
                         onChange={handleChange}
                         placeholder="Ej: 999.99"
                         required
                        
+          
                         disabled={isSubmitting}
                         style={styles.input}
                     />
                 </div>
                 
+          
                 <div style={styles.formGroup}>
       
                     <label style={styles.label}>Stock (Unidades)</label>
                     <input
                         type="text" // Usamos text para controlar mejor el formato numérico (solo enteros)
+          
                         name="stock"
      
                         value={formData.stock}
                         onChange={handleChange}
                         placeholder="Ej: 50"
+        
                         required
         
                         disabled={isSubmitting}
                         style={styles.input}
                     />
+        
                 </div>
                 
         
                 <div style={styles.formGroup}>
                     <label style={styles.label}>Categoría</label>
                     <select
+          
                         name="category_id"
                         value={formData.category_id}
   
                         onChange={handleChange}
                         required
+            
                         disabled={isSubmitting}
                         style={styles.select}
       
                     >
                         <option value="" disabled>-- Seleccione una Categoría --</option>
+        
                         {categories.map(cat => (
                             <option key={cat.id_key} value={cat.id_key}>
                               
+                      
                                 {cat.name} (ID: {cat.id_key})
                             </option>
                         ))}
                     </select>
+                
                 </div>
 
 
@@ -354,30 +448,53 @@ if (loading && isEditing) {
                     <button 
                         type="submit" 
                         disabled={isSubmitting} 
-                    
+    
+                 
                         style={styles.saveButton}
                         onMouseEnter={(e) => handleSaveHover(e, true)}
                         onMouseLeave={(e) => handleSaveHover(e, false)}
-                    >
+      
+                        >
                     
                         <CiSaveDown1 size={20} style={{verticalAlign: 'middle', marginRight: '5px'}}/>
                         {isSubmitting ?
-'Guardando...' : (isEditing ? 'Actualizar Producto' : 'Crear Producto')}
+                            'Guardando...' : (isEditing ? 'Actualizar Producto' : 'Crear Producto')}
                     </button>
                     <button 
                         type="button" 
-                        onClick={() => navigate('/admin/products')} 
+                        onClick={() => 
+                            navigate('/admin/products')} 
                         style={styles.cancelButton}
                         onMouseEnter={(e) => handleCancelHover(e, true)}
                         onMouseLeave={(e) => handleCancelHover(e, false)}
                    
-                    >
+  
+                        >
                         Cancelar
                     </button>
                 </div>
+
+                {/* BOTÓN DE GESTIÓN (ELIMINAR/DESACTIVAR) - Visible solo en Edición */}
+                {isEditing && (
+                    <div style={{ marginTop: '30px', borderTop: '1px solid #424242', paddingTop: '20px', textAlign: 'right' }}>
+                        <button 
+                            type="button"
+                            onClick={handleDeleteOrDeactivate}
+                            disabled={isSubmitting}
+                            style={styles.deleteButton}
+                            onMouseEnter={(e) => e.target.style.backgroundColor = '#dc2626'}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = styles.deleteButton.backgroundColor}
+                        >
+                            {isSubmitting ? 'Procesando...' : (hasOrders ? 'DESACTIVAR (Stock 0)' : 'ELIMINAR')}
+                        </button>
+                    </div>
+                )}
             </form>
         </div>
+  
     );
 };
 
 export default ProductFormScreen;
+
+// --- FIN DEL ARCHIVO: src\screens\AdminDashboard\FormsScreens\ProductFormScreen.jsx ---

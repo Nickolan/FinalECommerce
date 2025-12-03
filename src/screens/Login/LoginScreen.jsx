@@ -1,3 +1,5 @@
+// --- INICIO DEL ARCHIVO: src\screens\Login\LoginScreen.jsx ---
+
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -35,6 +37,34 @@ const LoginScreen = ({ onLogin }) => {
     const handleSignupClick = (e) => {
         e.preventDefault();
         navigate('/signup')
+    };
+
+    // --- ACCESO RÁPIDO ADMINISTRATIVO (NUEVO) ---
+    const ADMIN_ID_SIMULATION = 1;
+    
+    const handleAdminLogin = async () => {
+        setLoading(true);
+        setError('');
+
+        try {
+            // 1. Simular la obtención de datos del cliente (ID: 1)
+            const response = await axios.get(`/clients/${ADMIN_ID_SIMULATION}`);
+            const clientData = response.data;
+
+            // 2. DISPATCH de la acción setCredentials con los datos del Admin (ID 1)
+            dispatch(setCredentials({
+                id_key: clientData.id_key,
+                email: clientData.email,
+                name: clientData.name
+            }));
+            
+            setLoading(false);
+            // 3. Redirigir al panel de administración
+            navigate("/admin");
+        } catch (error) {
+            setLoading(false);
+            setError('Error: No se pudo simular el acceso administrativo. Asegúrate que el Cliente ID 1 exista en la API.');
+        }
     };
 
     // --- FLUJO DE LOGIN SIMULADO ---
@@ -95,6 +125,7 @@ const LoginScreen = ({ onLogin }) => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            
             padding: '16px',
             fontFamily: 'Arial, sans-serif'
         },
@@ -103,6 +134,7 @@ const LoginScreen = ({ onLogin }) => {
             maxWidth: '400px',
             backgroundColor: '#1e1e1e', // Fondo de tarjeta oscuro
             padding: '32px',
+           
             borderRadius: '12px',
             boxShadow: '0 4px 15px rgba(0, 0, 0, 0.5)', // Sombra más prominente
             border: '1px solid #424242', // Borde gris oscuro
@@ -110,6 +142,7 @@ const LoginScreen = ({ onLogin }) => {
         header: {
             fontSize: '2.5rem', // Título más grande
             fontWeight: '900', // Más grueso
+      
             color: '#ff5722', // Rojo Primario (Mercado Fake)
             textAlign: 'center',
             marginBottom: '16px',
@@ -117,7 +150,8 @@ const LoginScreen = ({ onLogin }) => {
         subtitle: {
             textAlign: 'center',
             fontSize: '1rem', // Texto ligeramente más grande
-            color: '#bdbdbd', // Gris claro para subtítulo
+            color: '#bdbdbd', 
+            // Gris claro para subtítulo
             marginBottom: '32px',
         },
         formGroup: {
@@ -126,6 +160,7 @@ const LoginScreen = ({ onLogin }) => {
         label: {
             display: 'block',
             fontSize: '0.9rem', // Etiqueta más legible
+      
             fontWeight: '600',
             color: '#e0e0e0', // Texto claro
             marginBottom: '4px',
@@ -134,6 +169,7 @@ const LoginScreen = ({ onLogin }) => {
             width: '100%',
             padding: '10px 16px',
             border: '1px solid #424242', // Borde oscuro
+  
             borderRadius: '8px',
             transition: 'all 0.15s ease-in-out',
             boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.6)',
@@ -141,6 +177,7 @@ const LoginScreen = ({ onLogin }) => {
             color: '#e0e0e0', // Texto de input claro
         },
         button: {
+ 
             width: '100%',
             display: 'flex',
             justifyContent: 'center',
@@ -155,6 +192,7 @@ const LoginScreen = ({ onLogin }) => {
             cursor: 'pointer',
             transition: 'background-color 0.15s ease-in-out',
         },
+  
         buttonHover: {
             backgroundColor: '#e64a19', // Rojo Oscuro en hover
         },
@@ -172,6 +210,7 @@ const LoginScreen = ({ onLogin }) => {
         spinner: {
             marginRight: '8px',
             height: '20px',
+  
             width: '20px',
             animation: 'spin 1s linear infinite',
             // Color del spinner
@@ -180,6 +219,7 @@ const LoginScreen = ({ onLogin }) => {
         linkButton: {
             width: '100%',
             backgroundColor: 'transparent',
+ 
             color: '#ff5722', // Link en color Primario
             border: 'none',
             padding: '8px 0',
@@ -187,6 +227,7 @@ const LoginScreen = ({ onLogin }) => {
             fontSize: '0.9rem',
             fontWeight: '600',
             cursor: 'pointer',
+    
             transition: 'color 0.15s ease-in-out',
             marginTop: '10px'
         },
@@ -194,12 +235,25 @@ const LoginScreen = ({ onLogin }) => {
             textDecoration: 'underline',
             color: '#e64a19' // Link hover en color Primario Oscuro
         },
+        adminLinkButton: { // <-- NUEVO ESTILO DISCRETO PARA ADMIN
+            width: '100%',
+            backgroundColor: 'transparent',
+            color: '#424242', // Gris oscuro, casi invisible
+            border: 'none',
+            padding: '4px 0',
+            textAlign: 'center',
+            fontSize: '0.8rem',
+            fontWeight: '400',
+            cursor: 'pointer',
+            transition: 'color 0.15s ease-in-out',
+            marginTop: '15px'
+        },
         '@keyframes spin': {
+        
             from: { transform: 'rotate(0deg)' },
             to: { transform: 'rotate(360deg)' },
         }
     };
-
     return (
         <div style={styles.container}>
             <div style={styles.card}>
@@ -207,6 +261,7 @@ const LoginScreen = ({ onLogin }) => {
                     Mercado Fake
                 </h1>
                 <p style={styles.subtitle}>
+      
                     Accede con tu ID de Cliente y correo electrónico.
                 </p>
 
@@ -217,55 +272,68 @@ const LoginScreen = ({ onLogin }) => {
                         <label htmlFor="id_key" style={styles.label}>
                             ID de Cliente
                         </label>
+                    
                         <input
                     
                             id="id_key"
                             name="id_key"
+                    
                             type="number"
                             value={formData.id_key}
         
                             onChange={handleChange}
+                            
                             placeholder="Tu ID numérico (ej: 1, 2)"
                             required
                    
                             disabled={loading}
+                    
                             style={styles.input}
                         />
                     </div>
 
                    
                     <div style={styles.formGroup}>
+        
                         <label htmlFor="email" style={styles.label}>
                             Correo Electrónico
                         </label>
                    
+          
                         <input
                             id="email"
                             name="email"
                             type="email"
-           
+  
+          
                             value={formData.email}
                             onChange={handleChange}
                             placeholder="Tu email de registro"
-                        
+    
+                    
                             required
                             disabled={loading}
+                        
                             style={styles.input}
                         />
                 
                     </div>
 
                     {/* Mensaje de Error (letras rojas por encima del botón) */}
+      
                     {error && <p style={styles.errorText}>{error}</p>}
 
                     <button
                        
                         type="submit"
+                
                         disabled={loading}
                         style={{
                             ...styles.button,
                        
-                            ...(loading ? styles.buttonDisabled : {})
+                 
+                            ...(loading ?
+                                styles.buttonDisabled : {})
                         }}
                         onMouseEnter={(e) => {
                             if (!loading) e.currentTarget.style.backgroundColor = styles.buttonHover.backgroundColor;
@@ -275,26 +343,41 @@ const LoginScreen = ({ onLogin }) => {
                         }}
                     >
                         {loading ?
-                        (
-                            <svg style={styles.spinner} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" style={{ opacity: 0.25 }}></circle>
+                            (
+                                <svg style={styles.spinner} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" style={{ opacity: 0.25 }}></circle>
                         
-                                <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" style={{ opacity: 0.75 }}></path>
-                            </svg>
-                        ) : 'INICIAR SESIÓN'}
+                                    <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" style={{ opacity: 0.75 }}></path>
+                                </svg>
+               
+                            ) : 'INICIAR SESIÓN'}
             
                     </button>
 
                     {/* Botón de Redirección a Registro */}
                     <button
+          
                         onClick={handleSignupClick}
                       
                         style={styles.linkButton}
                         onMouseEnter={(e) => e.currentTarget.style.textDecoration = styles.linkButtonHover.textDecoration}
+            
                         onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
                     >
                       
                         No tengo una cuenta
+               
+                    </button>
+                    
+                    {/* BOTÓN DE ACCESO ADMINISTRATIVO RÁPIDO (DEV/QA ONLY) */}
+                    <button
+                        onClick={handleAdminLogin}
+                        disabled={loading}
+                        style={styles.adminLinkButton} 
+                        onMouseEnter={(e) => e.target.style.color = '#ff5722'}
+                        onMouseLeave={(e) => e.target.style.color = '#424242'}
+                    >
+                        Acceso Rápido Admin
                     </button>
                 </form>
             </div>
@@ -303,3 +386,5 @@ const LoginScreen = ({ onLogin }) => {
 };
 
 export default LoginScreen;
+
+// --- FIN DEL ARCHIVO: src\screens\Login\LoginScreen.jsx ---

@@ -6,7 +6,7 @@ const initialState = {
   
   // Estado de filtros y paginación
   currentPage: 1,
-  productsPerPage: 8, // Límite de la API
+  productsPerPage: 20, // Límite de la API
   totalProducts: 0, 
   
   // Filtros de la UI

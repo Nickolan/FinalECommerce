@@ -18,7 +18,7 @@ const ENUMS = {
 };
 
 const DELIVERY_METHODS_UI = [
-    { id: ENUMS.DELIVERY_METHOD.HOME_DELIVERY, name: 'Envío a Domicilio', price: 10.00 },
+    { id: ENUMS.DELIVERY_METHOD.HOME_DELIVERY, name: 'Envío a Domicilio', price: 0.00 },
     { id: ENUMS.DELIVERY_METHOD.DRIVE_THRU, name: 'Recoger en Tienda (Drive Thru)', price: 0.00 },
     { id: ENUMS.DELIVERY_METHOD.ON_HAND, name: 'Recoger en Tienda (En Persona)', price: 0.00 },
 ];

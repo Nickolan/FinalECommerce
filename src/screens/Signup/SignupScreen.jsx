@@ -16,6 +16,12 @@ const formFields = [
 const SignupScreen = () => {
     const navigate = useNavigate(); // <-- Agregamos useNavigate
 
+    // Expresión regular para validar el email (RFC 5322 simplificado)
+    const emailRegex = /^\S+@\S+\.\S+$/;
+
+    // Expresión regular para validar el teléfono internacional (+Dígitos, 10-15 dígitos)
+    const phoneRegex = /^\+\d{10,15}$/;
+
     const [formData, setFormData] = useState({
         name: '',
         lastname: '',
@@ -37,9 +43,26 @@ const SignupScreen = () => {
         setMessage({ type: '', text: '' });
         setLoading(true);
 
-        // Validaciones básicas del lado del cliente (React)
-        if (!formData.name || !formData.lastname || !formData.email || !formData.telephone) {
-            setMessage({ type: 'error', text: 'Por favor, complete todos los campos obligatorios.' });
+        // --- VALIDACIONES DE FORMATO Y OBLIGATORIEDAD (NUEVO) ---
+        const { name, lastname, email, telephone } = formData;
+
+        // 1. Campos obligatorios y longitud (1-100 caracteres) [cite: 1808]
+        if (!name || name.length > 100 || !lastname || lastname.length > 100 || !email || !telephone) {
+            setMessage({ type: 'error', text: 'Por favor, complete todos los campos obligatorios. Nombre y Apellido no deben exceder 100 caracteres.' });
+            setLoading(false);
+            return;
+        }
+
+        // 2. Validación de Email (RFC 5322)
+        if (!emailRegex.test(email)) {
+            setMessage({ type: 'error', text: 'El formato del Correo Electrónico no es válido (RFC 5322).' });
+            setLoading(false);
+            return;
+        }
+
+        // 3. Validación de Teléfono Internacional (ej: +525512345678)
+        if (!phoneRegex.test(telephone)) {
+            setMessage({ type: 'error', text: 'El formato del Teléfono es incorrecto. Debe ser internacional, comenzando con "+" y solo dígitos (ej: +525512345678).' });
             setLoading(false);
             return;
         }
@@ -48,8 +71,8 @@ const SignupScreen = () => {
             // El servidor espera los campos en inglés: { name, lastname, email, telephone }
             const response = await axios.post(`/clients`, formData);
             setLoading(false);
-            setMessage({ 
-                type: 'success', 
+            setMessage({
+                type: 'success',
                 text: `¡Registro exitoso! Tu ID de Cliente es: ${response.data.id_key}. Ahora puedes Iniciar Sesión.`
             });
             // Opcional: Limpiar el formulario
@@ -74,13 +97,13 @@ const SignupScreen = () => {
                 }
             } else if (error.request) {
                 // Asumimos que la URL base está definida globalmente
-                errorMessage = 'No se pudo conectar al servidor API. Asegúrate de que el servidor esté corriendo.'; 
+                errorMessage = 'No se pudo conectar al servidor API. Asegúrate de que el servidor esté corriendo.';
             }
 
             setMessage({ type: 'error', text: errorMessage });
         }
     };
-    
+
     // Función para manejar la navegación a la pantalla de Login
     const handleLoginClick = (e) => {
         e.preventDefault();
@@ -90,10 +113,10 @@ const SignupScreen = () => {
     const MessageComponent = ({ type, text }) => {
         if (!text) return null;
         const style = type === 'success' ? styles.messageSuccess : styles.messageError;
-        
+
         return <div style={{ ...styles.messageBase, ...style }}>{text}</div>;
     };
-    
+
     // Estilos CSS estándar (Actualizados para el tema Dark/Red)
     const styles = {
         container: {
@@ -184,7 +207,7 @@ const SignupScreen = () => {
         },
         linkButtonHover: {
             textDecoration: 'underline',
-            color: '#e64a19' 
+            color: '#e64a19'
         },
         messageBase: {
             padding: '12px',
@@ -216,7 +239,7 @@ const SignupScreen = () => {
             to: { transform: 'rotate(360deg)' },
         }
     };
-    
+
     return (
         <div style={styles.container}>
             <div style={styles.card}>
@@ -232,11 +255,11 @@ const SignupScreen = () => {
                 <form onSubmit={handleSubmit} style={styles.formGroup}>
                     {formFields.map((field) => (
                         <div key={field.name} style={{ marginBottom: '20px' }}>
-                            <label 
-                                htmlFor={field.name} 
+                            <label
+                                htmlFor={field.name}
                                 style={styles.label}
                             >
-                                {field.label} {field.required && <span style={{ color: '#ff5722' }}>*</span>} 
+                                {field.label} {field.required && <span style={{ color: '#ff5722' }}>*</span>}
                             </label>
                             <input
                                 id={field.name}
@@ -251,7 +274,7 @@ const SignupScreen = () => {
                             />
                         </div>
                     ))}
-                    
+
                     <button
                         type="submit"
                         disabled={loading}
@@ -266,7 +289,7 @@ const SignupScreen = () => {
                             </svg>
                         ) : 'REGISTRARME'}
                     </button>
-                    
+
                     {/* Botón de Redirección a Login */}
                     <button
                         onClick={handleLoginClick}

@@ -28,6 +28,7 @@ import BillsListScreen from './screens/AdminDashboard/ListsScreens/BillsListScre
 import BillDetailsScreen from './screens/AdminDashboard/DetailsScreens/BillDetailsScreen'
 import OrderDetailsClientScreen from './screens/OrderDetails/OrderDetailsClientScreen'
 import ReviewFormScreen from './screens/ReviewFormScreen/ReviewFormScreen'
+import SystemHealthScreen from './screens/AdminDashboard/SystemHealthScreen'
 
 
 function App() {
@@ -62,6 +63,7 @@ function App() {
             <Route path="products/edit/:productId" element={<ProductFormScreen />} />
             <Route path="bills" element={<BillsListScreen />} />
             <Route path="bills/:billId" element={<BillDetailsScreen />}/>
+            <Route path="health" element={<SystemHealthScreen />} />
         </Route>
       </Routes>
     </div>
