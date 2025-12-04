@@ -72,9 +72,9 @@ const ProductFormScreen = () => {
 
             // Inferencia de caché (Heurística en el frontend)
             // Asumimos: < 70ms = Cache Hit (Rápido) | > 150ms = Cache Miss (Lento/DB)
-            if (timeDiff < 70) {
+            if (timeDiff < 300) {
                 setCacheStatus('Caché: HIT ⚡');
-            } else if (timeDiff < 200) {
+            } else if (timeDiff < 450) {
                 setCacheStatus('Caché: MISS (Latencia media)');
             } else {
                  setCacheStatus('Base de Datos (Latencia alta)');

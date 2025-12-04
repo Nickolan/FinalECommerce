@@ -18,7 +18,7 @@ const getForcedImageUrl = (id) => `https://placehold.co/300x200/ff5722/ffffff?te
 const BANNER_IMAGE_URL = 'https://picsum.photos/1200/300?random=1';
 
 // CONSTANTE DE HEURÍSTICA DE CACHÉ
-const CACHE_HIT_THRESHOLD_MS = 323; 
+const CACHE_HIT_THRESHOLD_MS = 360; 
 
 const HomeScreen = () => {
     const dispatch = useDispatch();
