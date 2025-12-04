@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux'; // <-- Importar useDispatch
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { setSelectedOrder } from '../../redux/slices/catalogSlice';
 // Mapeo de valores de ENUM (Status) para mostrar texto legible
 const ORDER_STATUS_MAP = {
     1: 'Pendiente',      // PENDING
@@ -9,8 +10,13 @@ const ORDER_STATUS_MAP = {
     3: 'Entregado',      // DELIVERED
     4: 'Cancelado',      // CANCELED
 };
+
+const CACHE_HIT_THRESHOLD_MS = 70;
+
 const MyOrdersScreen = () => {
     const navigate = useNavigate();
+    const dispatch = useDispatch();
+
     // Obtener el ID de cliente del estado global (sesión)
     const { client_id, isLoggedIn } = useSelector(state => state.auth);
     const [orders, setOrders] = useState([]);
@@ -59,6 +65,42 @@ const MyOrdersScreen = () => {
 
         }
     }, [isLoggedIn, navigate, fetchOrders]);
+
+    const handleOrderClick = async (orderId) => {
+        
+        // 1. INICIO DE MEDICIÓN DE LATENCIA
+        const startTime = Date.now();
+
+        try {
+            // 2. Obtener los detalles completos del pedido
+            const response = await axios.get(`/orders/${orderId}`);
+            
+            // 3. FIN DE MEDICIÓN Y CÁLCULO
+            const endTime = Date.now();
+            const timeDiff = endTime - startTime; // Latencia Total de la API
+
+            const orderData = response.data;
+            
+            // 4. Guardar el objeto completo en el estado global
+            dispatch(setSelectedOrder(orderData)); 
+            
+            // 5. Opcional: Mostrar notificación de caché (solo en consola, el cliente no lo ve)
+            if (timeDiff < CACHE_HIT_THRESHOLD_MS) {
+                console.log(`[Cache Order]: HIT ⚡ Latencia: ${timeDiff}ms. Respuesta servida desde Redis (inferido).`);
+            } else {
+                console.log(`[Cache Order]: MISS. Latencia: ${timeDiff}ms. Accediendo a DB (inferido).`);
+            }
+
+            // 6. Redirigir a la pantalla de detalle
+            navigate(`/orders/${orderId}`);
+            
+        } catch (err) {
+            console.error("Error al obtener detalles del pedido:", err);
+            setError("Error al cargar los detalles del pedido. Intente de nuevo.");
+            // Si falla, limpiar la selección para forzar el fallback en la pantalla de detalles
+            dispatch(setSelectedOrder(null)); 
+        }
+    };
 
     // =========================================================================
     // II. RENDERIZADO
@@ -180,7 +222,7 @@ const MyOrdersScreen = () => {
                     {orders.map((order) => (
                         <div
                             key={order.id_key}
-                            onClick={() => navigate(`/orders/${order.id_key}`)}
+                            onClick={() => handleOrderClick(order.id_key)}
                             style={styles.orderCard}
                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = styles.orderCardHover.backgroundColor}
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = styles.orderCard.backgroundColor}

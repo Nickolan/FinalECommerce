@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux'; // <-- Importar useDispatch
+import { setSelectedOrder } from '../../redux/slices/catalogSlice'
 import { CiCalendar, CiDollar, CiDeliveryTruck, CiUser } from "react-icons/ci";
 import { IoChevronBackCircle, IoStar } from "react-icons/io5";
 
@@ -31,10 +32,13 @@ const OrderDetailsClientScreen = () => {
     const { orderId } = useParams();
 // Obtiene el ID del pedido de la URL [cite: 1179]
     const navigate = useNavigate();
+    const dispatch = useDispatch();
     const { client_id, isLoggedIn } = useSelector(state => state.auth);
+    const selectedOrder = useSelector(state => state.catalog.selectedOrder); 
 
-    const [order, setOrder] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [order, setOrder] = useState(selectedOrder); // Usar el pedido de Redux como estado inicial
+    const [loading, setLoading] = useState(!selectedOrder);
+
     const [isCancelling, setIsCancelling] = useState(false);
     const [error, setError] = useState(null);
     const [cancelError, setCancelError] = useState(null);
@@ -43,6 +47,9 @@ const OrderDetailsClientScreen = () => {
     // =========================================================================
     
     const fetchOrderDetails = useCallback(async () => {
+        // Solo ejecutar si no tenemos el pedido en el estado local (viene de Redux)
+        if (order) return; 
+        
         setLoading(true);
         setError(null);
         setCancelError(null);
@@ -50,20 +57,20 @@ const OrderDetailsClientScreen = () => {
         if (!isLoggedIn || !client_id) {
             navigate('/login');
             return;
-    
         }
         
         try {
+            // Lógica de carga original
             const response = await axios.get(`/orders/${orderId}`);
+            const fetchedOrder = response.data;
             
-            if (response.data.client_id !== parseInt(client_id, 10)) {
+            if (fetchedOrder.client_id !== parseInt(client_id, 10)) {
                  setError('Acceso Denegado: Este pedido no pertenece a tu cuenta.');
-         
                  setOrder(null);
                  return;
             }
             
-            setOrder(response.data);
+            setOrder(fetchedOrder);
             
         } catch (err) {
             console.error(`Error fetching order ${orderId}:`, err);
@@ -72,11 +79,19 @@ const OrderDetailsClientScreen = () => {
         } finally {
             setLoading(false);
         }
-    }, [orderId, client_id, isLoggedIn, navigate]);
+    }, [order, orderId, client_id, isLoggedIn, navigate]); 
 
     useEffect(() => {
-        fetchOrderDetails();
-    }, [fetchOrderDetails]);
+        // Si no hay 'order' (porque se accedió directo por URL o Redux estaba vacío)
+        if (!order) { 
+             fetchOrderDetails();
+        } 
+        
+        // Limpiar el estado global al salir para la próxima navegación
+        return () => {
+            dispatch(setSelectedOrder(null));
+        };
+    }, [order, fetchOrderDetails, dispatch]);
 // =========================================================================
     // II. LÓGICA DE CANCELACIÓN Y NAVEGACIÓN
     // =========================================================================

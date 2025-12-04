@@ -107,7 +107,9 @@ const CategoryFormScreen = () => {
             padding: '8px 15px', 
             borderRadius: '5px', 
             cursor: 'pointer', 
-            border: '1px solid #424242', 
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#424242',
             fontWeight: '600',
             transition: 'background-color 0.15s'
         },
@@ -116,7 +118,9 @@ const CategoryFormScreen = () => {
             borderRadius: '10px', 
             boxShadow: '0 4px 8px rgba(0, 0, 0, 0.4)', 
             backgroundColor: '#1e1e1e', // Fondo de formulario oscuro
-            border: '1px solid #424242' 
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#424242',
         },
         formGroup: { marginBottom: '20px' },
         label: { 
@@ -129,7 +133,9 @@ const CategoryFormScreen = () => {
         input: { 
             width: '100%', 
             padding: '10px', 
-            border: '1px solid #424242', 
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#424242',
             borderRadius: '5px',
             backgroundColor: '#2e2e2e',
             color: '#e0e0e0'

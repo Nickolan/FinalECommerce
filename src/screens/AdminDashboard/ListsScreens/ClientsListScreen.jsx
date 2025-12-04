@@ -73,13 +73,17 @@ const ClientsListScreen = () => {
             padding: '15px', 
             backgroundColor: '#1e1e1e', // Fondo de la tarjeta de búsqueda
             borderRadius: '8px', 
-            border: '1px solid #424242' 
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#424242',
         },
         searchInput: { 
             flexGrow: 1, 
             padding: '10px', 
             borderRadius: '5px', 
-            border: '1px solid #424242', 
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#424242',
             marginLeft: '10px', 
             fontSize: '1rem',
             backgroundColor: '#2e2e2e', // Fondo de input oscuro

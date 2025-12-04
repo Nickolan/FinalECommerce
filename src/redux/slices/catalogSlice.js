@@ -12,6 +12,9 @@ const initialState = {
   // Filtros de la UI
   currentSearchTerm: '',
   selectedCategoryId: '', // Para el filtro Select
+  
+  selectedProduct: null, // Objeto completo del producto
+  selectedOrder: null,
 };
 
 export const catalogSlice = createSlice({
@@ -45,6 +48,12 @@ export const catalogSlice = createSlice({
     setSearchTerm: (state, action) => {
       state.currentSearchTerm = action.payload;
       state.currentPage = 1; // Resetear la página al buscar
+    },
+    setSelectedProduct: (state, action) => {
+      state.selectedProduct = action.payload;
+    },
+    setSelectedOrder: (state, action) => {
+      state.selectedOrder = action.payload;
     }
   },
 });
@@ -54,7 +63,9 @@ export const {
   setCategories, 
   setCurrentPage, 
   setSelectedCategory, 
-  setSearchTerm 
+  setSearchTerm,
+  setSelectedProduct,
+  setSelectedOrder
 } = catalogSlice.actions;
 
 export default catalogSlice.reducer;

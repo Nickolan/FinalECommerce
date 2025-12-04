@@ -169,7 +169,9 @@ const ProductsListScreen = () => {
             padding: '10px',
             backgroundColor: '#1e1e1e',
             borderRadius: '8px',
-            border: '1px solid #424242',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#424242',
             flexGrow: 1
 
         },
@@ -185,7 +187,9 @@ const ProductsListScreen = () => {
         filterSelect: {
             padding: '8px 10px',
             borderRadius: '5px',
-            border: '1px solid #424242',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#424242',
             fontSize: '1rem',
             backgroundColor: '#2e2e2e',
 

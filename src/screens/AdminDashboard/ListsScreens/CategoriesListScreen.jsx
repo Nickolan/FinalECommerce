@@ -124,7 +124,9 @@ const CategoriesListScreen = () => {
             padding: '10px',
             backgroundColor: '#1e1e1e',
             borderRadius: '8px',
-            border: '1px solid #424242',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#424242',
             flexGrow: 1,
             marginRight: '15px'
 

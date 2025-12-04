@@ -1,5 +1,4 @@
-import React, { useEffect, useCallback, useMemo, useState } from 'react';
-// <-- useState agregado
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import axios from 'axios';
 import { 
@@ -7,13 +6,20 @@ import {
     setCategories, 
     setCurrentPage, 
     setSelectedCategory, 
-    setSearchTerm 
+    setSearchTerm,
+    setSelectedProduct
 } from '../../redux/slices/catalogSlice';
 import { useNavigate } from 'react-router-dom';
+import ProductSummaryModal from '../../components/ProductSummaryModal/ProductSummaryModal'; 
 
-const getForcedImageUrl = (id) => `https://placehold.co/300x200/ff5722/ffffff?text=Producto-${id}`; // Nuevo color en placeholder
+// Función para simular una imagen forzada para el producto (placeholder)
+const getForcedImageUrl = (id) => `https://placehold.co/300x200/ff5722/ffffff?text=Producto-${id}`;
 // Imagen de banner (buscada en Google)
 const BANNER_IMAGE_URL = 'https://picsum.photos/1200/300?random=1';
+
+// CONSTANTE DE HEURÍSTICA DE CACHÉ
+const CACHE_HIT_THRESHOLD_MS = 323; 
+
 const HomeScreen = () => {
     const dispatch = useDispatch();
     const { 
@@ -27,94 +33,101 @@ const HomeScreen = () => {
     } = useSelector(state => state.catalog);
     const navigate = useNavigate();
     
-    // El hook useState se utiliza para estados locales como loading y error
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    
-    // Hook para manejar el hover del producto (simulación de CSS hover)
     const [hoveredProductId, setHoveredProductId] = useState(null);
-// =========================================================================
-    // I. CARGA DE DATOS: Productos y Categorías desde la API
+
+    // ESTADOS PARA EL MODAL DE CACHÉ
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalProduct, setModalProduct] = useState(null);
+    
+    // <-- NUEVO ESTADO PARA CONTROLAR LA INICIALIZACIÓN -->
+    const [isInitialized, setIsInitialized] = useState(false);
+    // <-- FIN NUEVO ESTADO -->
+
+    // =========================================================================
+    // I. CARGA DE DATOS: INICIALIZACIÓN (Solo una vez)
     // =========================================================================
 
-    // 1. Cargar Categorías (se hace una sola vez)
     useEffect(() => {
-        const fetchCategories = async () => {
+        // La carga inicial de Categorías SOLO debe ocurrir una vez al montar.
+        // Usamos isInitialized para prevenir el doble fetch en StrictMode.
+        if (isInitialized) return;
+
+        const fetchInitialCategories = async () => {
             try {
-                // Endpoint de Categorías
-                
+                console.log("ejecucion2");
                 const response = await axios.get(`/categories`);
                 dispatch(setCategories(response.data));
+                setIsInitialized(true); // Marcar como inicializado SOLO al tener éxito
             } catch (err) {
-                console.error("Error cargando categorías:", err);
-                setError("Error al cargar las categorías.");
+                console.error("Error cargando categorías en inicialización:", err);
+                setError("Error al cargar las categorías iniciales.");
             }
         };
       
-        fetchCategories();
-    }, [dispatch]);
+        fetchInitialCategories();
+    }, [dispatch, isInitialized]); // Dependencia de isInitialized
 
-    // 2. Cargar Productos (cada vez que cambian filtros o paginación)
-    const fetchProducts = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-
-        // Se calcula el 'skip' (offset) para la paginación
-        const skip = (currentPage - 1) * productsPerPage;
-        
-        let url = `/products?skip=${skip}&limit=${productsPerPage}`;
-      
-        // Asumimos que la API soporta filtrar por category_id para que el filtro funcione
-        
-        
-        try {
-            console.log("Hola");
-            
-            const response = await axios.get(url);
-            console.log(response.data);
-            
-            let data = response.data;
-            console.log(data);
-         
-            if (selectedCategoryId) {
-                data = response.data.filter(e => e.category_id == selectedCategoryId)
-            }
-
-            // Si la respuesta es una lista (como lo es en tu API):
-            const fetchedProducts = data.map(p => ({
-        
-                ...p,
-                // Añadir imagen forzada al objeto del producto
-                imageUrl: getForcedImageUrl(p.id_key) 
-            }));
-            // Simulación del total de productos para la paginación:
-            // Si obtenemos exactamente el límite, asumimos que hay una página más.
-            const simulatedTotal = fetchedProducts.length < productsPerPage 
-                ? skip + fetchedProducts.length 
-                : skip + fetchedProducts.length + productsPerPage;
-            dispatch(setProducts({ 
-                products: fetchedProducts, 
-                total: simulatedTotal, 
-                currentPage: currentPage 
-            }));
-        } catch (err) {
-            console.error("Error cargando productos:", err);
-            setError("Error al cargar los productos. Verifique la conexión con el servidor.");
-        } finally {
-            setLoading(false);
-        }
-    }, [dispatch, currentPage, productsPerPage, selectedCategoryId]);
-
-    // Ejecutar la carga cada vez que cambie la página o la categoría
+    // 2. Cargar Productos (se dispara al cambiar filtros/paginación o al inicializar)
+    // ESTE HOOK AHORA SOLO SE ENFOCA EN EL CAMBIO DE FILTROS/PAGINACIÓN
     useEffect(() => {
-        fetchProducts();
-    }, [fetchProducts, selectedCategoryId, currentPage]);
-// =========================================================================
-    // II. LÓGICA DE FILTRADO (Lado del Cliente)
+        // No cargar productos si las categorías aún no se han cargado (isInitialized = false)
+        if (!isInitialized) return;
+        
+        const loadProducts = async () => {
+            setLoading(true);
+            setError(null);
+            
+            // Se calcula el 'skip' (offset) para la paginación
+            const skip = (currentPage - 1) * productsPerPage;
+            
+            // Asumimos que la API soporta el filtro `category_id`
+            let url = `/products?skip=${skip}&limit=${productsPerPage}`;
+            
+            if (selectedCategoryId) {
+                url += `&category_id=${selectedCategoryId}`;
+            }
+            
+            try {
+                const response = await axios.get(url);
+                console.log("ejecucion");
+                
+                let fetchedProducts = response.data.map(p => ({
+                    ...p,
+                    // Añadir imagen forzada al objeto del producto
+                    imageUrl: getForcedImageUrl(p.id_key) 
+                }));
+                
+                // Simulación del total de productos
+                const simulatedTotal = fetchedProducts.length < productsPerPage 
+                    ? skip + fetchedProducts.length 
+                    : skip + fetchedProducts.length + productsPerPage;
+                    
+                dispatch(setProducts({ 
+                    products: fetchedProducts, 
+                    total: simulatedTotal, 
+                    currentPage: currentPage 
+                }));
+                
+            } catch (err) {
+                console.error("Error cargando productos:", err);
+                setError("Error al cargar los productos. Verifique la conexión con el servidor.");
+            } finally {
+                setLoading(false);
+            }
+        };
+        
+        loadProducts();
+
+        // Dependencias que disparan la nueva carga desde la API
+    }, [dispatch, currentPage, productsPerPage, selectedCategoryId, isInitialized]); // isInitialized asegura que no se ejecute antes de tiempo
+
+    // =========================================================================
+    // II. LÓGICA DE INTERACCIÓN (Detección de Caché)
     // =========================================================================
 
     // Aplicar filtro de búsqueda por nombre (search bar) sobre la lista actual.
-// Esto es un filtro en memoria sobre los 8 productos cargados.
     const filteredProducts = useMemo(() => {
         if (!currentSearchTerm) {
             return products;
@@ -124,19 +137,51 @@ const HomeScreen = () => {
             product.name.toLowerCase().includes(term)
         );
     }, [products, currentSearchTerm]);
-// =========================================================================
-    // III. HANDLERS DE INTERACCIÓN DE LA UI
-    // =========================================================================
+
+    // Handler para decidir si mostrar modal o redirigir
+    const handleProductClick = async (productId) => {
+        
+        // 1. INICIO DE MEDICIÓN DE LATENCIA
+        const startTime = Date.now();
+
+        try {
+            // 2. Obtener los detalles completos del producto
+            const response = await axios.get(`/products/${productId}`);
+            
+            // 3. FIN DE MEDICIÓN Y CÁLCULO
+            const endTime = Date.now();
+            const timeDiff = endTime - startTime;
+            console.log(timeDiff);
+             
+
+            const productData = response.data;
+            productData.imageUrl = getForcedImageUrl(productData.id_key); 
+
+            // 4. DECISIÓN: CACHÉ HIT vs. CACHÉ MISS
+            if (timeDiff < CACHE_HIT_THRESHOLD_MS) {
+                // CACHÉ HIT (Latencia baja): Mostrar Modal
+                setModalProduct(productData);
+                setIsModalOpen(true);
+                
+            } else {
+                // CACHÉ MISS (Latencia alta): Redirigir a la pantalla de detalle
+                dispatch(setSelectedProduct(productData)); 
+                navigate(`/products/${productId}`);
+            }
+            
+        } catch (err) {
+            console.error("Error al obtener detalles del producto:", err);
+            setError("Error al cargar los detalles. Intente de nuevo.");
+        }
+    };
 
     // Búsqueda instantánea por nombre
     const handleSearchChange = (e) => {
-        // Dispatch al store para actualizar el término de búsqueda
         dispatch(setSearchTerm(e.target.value));
     };
 
     // Cambio de categoría
     const handleCategoryChange = (e) => {
-        // Dispatch al store para actualizar la categoría seleccionada
         dispatch(setSelectedCategory(e.target.value));
     };
     
@@ -149,8 +194,7 @@ const HomeScreen = () => {
     };
     
     // =========================================================================
-    // IV.
-// RENDERIZADO
+    // III. RENDERIZADO
     // =========================================================================
 
     // Estilos CSS estándar (ACTUALIZADOS PARA DARK MODE / MERCADO FAKE)
@@ -249,14 +293,12 @@ const HomeScreen = () => {
        
         '@keyframes spin': { from: { transform: 'rotate(0deg)' }, to: { transform: 'rotate(360deg)' } }
     };
-return (
+
+    return (
         <div style={styles.container}>
             {/* 1. Banner Estático */}
             <div style={styles.banner}>
-                {/* 
-
-[Image of Banner de E-commerce]
- */}
+                {/* [Image of Banner de E-commerce] */}
             </div>
 
             {/* 2. Controlador de Búsqueda y Filtro */}
@@ -311,7 +353,7 @@ return (
                     <div 
                         key={product.id_key} 
                         style={{ ...styles.productCard, ...(hoveredProductId === product.id_key ? styles.productCardHover : {}) }}
-                        onClick={() => navigate(`/products/${product.id_key}`)}
+                        onClick={() => handleProductClick(product.id_key)}
         
                         onMouseEnter={() => setHoveredProductId(product.id_key)}
                         onMouseLeave={() => setHoveredProductId(null)}
@@ -324,6 +366,7 @@ return (
                     
                                 alt={product.name} 
                                 style={styles.productImage}
+                                onError={(e) => e.target.src = getForcedImageUrl(product.id_key)}
                             />
                         </div>
    
@@ -371,6 +414,17 @@ return (
                         Siguiente
                     </button>
                 </div>
+            )}
+
+            {/* RENDERIZADO CONDICIONAL DEL MODAL DE CACHÉ */}
+            {isModalOpen && modalProduct && (
+                <ProductSummaryModal
+                    product={modalProduct}
+                    onClose={() => {
+                        setIsModalOpen(false);
+                        setModalProduct(null); // Limpiar al cerrar
+                    }}
+                />
             )}
         </div>
     );

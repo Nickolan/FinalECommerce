@@ -1,13 +1,8 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-// <-- useCallback agregado
-// Asumimos que estás usando react-router-dom para el enrutamiento
+import React, { useState, useEffect, useMemo, useCallback } from 'react'; 
+// <-- Eliminamos useCallback de fetchDetails, ya no es necesario
 import { useNavigate, useParams } from 'react-router-dom';
-// Importación de librerías externas de React Redux
 import { useDispatch, useSelector } from 'react-redux';
 import axios from 'axios';
-// Importar acciones del carrito de Redux Toolkit
-// Rutas corregidas asumiendo que este archivo está en el root (o un nivel superior a redux/)
-// IMPORTANTE: ASUMIMOS QUE addItemToCart PUEDE MANEJAR LA CANTIDAD COMPLETA.
 import { addItemToCart } from '../../redux/slices/cartSlice'; 
 
 // --- CONFIGURACIÓN ESTATICAS Y FUNCIONES LOCALES ---
@@ -21,13 +16,15 @@ const ProductDetailsScreen = () => {
     const { productId } = useParams(); // Obtiene el ID de la URL (ej: /products/10)
     const dispatch = useDispatch();
 // Estado local para los datos del producto
-    const [product, setProduct] = useState(null);
-    const [loading, setLoading] = useState(true);
+const selectedProduct = useSelector(state => state.catalog.selectedProduct);
+    const [loading, setLoading] = useState(!selectedProduct);
     const [error, setError] = useState(null);
     const [quantity, setQuantity] = useState(1);
 // Cantidad a añadir al carrito <--- ESTADO DE CANTIDAD
     const [addedToCart, setAddedToCart] = useState(false);
 // Estado para la notificación de éxito
+
+    const [localProduct, setLocalProduct] = useState(selectedProduct); // Usar el producto de Redux como inicial
 
     // Estado global de autenticación (para validar si puede comprar/comentar)
     const { isLoggedIn } = useSelector(state => state.auth);
@@ -37,40 +34,29 @@ const ProductDetailsScreen = () => {
     // I. CARGA DE DATOS DEL PRODUCTO Y RESEÑAS
     // =========================================================================
 
-    const fetchProductDetails = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        
-        try {
-            // Cargar Producto Específico
-            const productResponse = await axios.get(`/products/${productId}`);
-        
-            const productData = productResponse.data;
-
-            // Cargar Reseñas para el producto 
-            // Asumimos que la API SÍ soporta el filtro por product_id en el query string
-            const reviewsResponse = await axios.get(`/reviews?product_id=${productId}`);
-            const reviewsData = productData.reviews
-            
-      
-            // Adjuntar la URL de imagen forzada
-            productData.imageUrl = getForcedImageUrl(productData.id_key);
-            
-            // Combinar y guardar el estado
-            setProduct({ ...productData, reviews: reviewsData });
-        } catch (err) {
-            console.error("Error cargando detalles del producto:", err);
-            setError("Producto no encontrado o error de conexión.");
-        } finally {
-            setLoading(false);
-        }
-    }, [productId]); 
-
     useEffect(() => {
-        if (productId) {
-            fetchProductDetails();
+        if (!selectedProduct && productId) {
+            const fetchFallback = async () => {
+                setLoading(true);
+                try {
+                     // Cargar Producto Específico
+                    const productResponse = await axios.get(`/products/${productId}`);
+                    const productData = productResponse.data;
+                    productData.imageUrl = getForcedImageUrl(productData.id_key); 
+                    setLocalProduct(productData); // Guardar en estado local de fallback
+
+                } catch (err) {
+                    console.error("Error cargando detalles del producto (FALLBACK):", err);
+                    setError("Producto no encontrado o error de conexión.");
+                } finally {
+                    setLoading(false);
+                }
+            };
+            fetchFallback();
         }
-    }, [productId, fetchProductDetails]);
+    }, [selectedProduct, productId]);
+
+    const product = selectedProduct || localProduct;
 // =========================================================================
     // II. LÓGICA DEL CARRITO
     // =========================================================================

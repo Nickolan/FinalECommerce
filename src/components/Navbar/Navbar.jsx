@@ -102,8 +102,10 @@ const Navbar = () => {
         iconButton: {
             backgroundColor: 'transparent',
             padding: '8px',
-            border: '1px solid transparent',
             color: 'white', // Icono de usuario blanco
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: "transparent"
         },
         iconButtonHover: {
             backgroundColor: '#e64a19', // Rojo oscuro en hover
