@@ -6,6 +6,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { CiSaveDown1 } from "react-icons/ci";
 import { IoChevronBackCircle, IoFlashOutline, IoCloudOfflineOutline } from "react-icons/io5";
 
+const CACHE_HIT_THRESHOLD_MS = 300; // Heurística de caché
+
 const ProductFormScreen = () => {
     const { productId } = useParams();
     const navigate = useNavigate();
@@ -13,7 +15,6 @@ const ProductFormScreen = () => {
     const isEditing = !!productId;
 
     // Estado del formulario.
-    // Importante: price y stock deben ser manejados como números.
     const [formData, setFormData] = useState({
         name: '',
         price: '',
@@ -26,82 +27,90 @@ const ProductFormScreen = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
-    const [hasOrders, setHasOrders] = useState(false); // <-- NUEVO: Estado para verificar órdenes
+    const [hasOrders, setHasOrders] = useState(false); 
 
     const [latency, setLatency] = useState(null); 
-    const [cacheStatus, setCacheStatus] = useState('N/A')
+    const [cacheStatus, setCacheStatus] = useState('N/A');
+    
     // =========================================================================
     // I. CARGA DE DATOS (Categorías y Producto para Edición)
     // =========================================================================
 
-    // Carga las categorías disponibles
-    const fetchCategories = async () => {
-        try {
-            const response = await axios.get(`/categories?skip=0&limit=100`);
-            setCategories(response.data);
-            if (response.data.length > 0 && !isEditing) {
-                // Seleccionar la primera categoría por defecto al crear un nuevo producto
-                setFormData(prev => ({ ...prev, category_id: response.data[0].id_key }));
-            }
-        } catch (err) {
-            console.error("Error fetching categories:", err);
-            setError("Error al cargar las categorías. No se pueden crear/editar productos sin categorías.");
-        }
-    };
-    // Carga los datos del producto si estamos editando
-    const fetchProductData = useCallback(async () => {
-        if (!isEditing) return;
-        
-        setLoading(true);
-        setError(null);
-        // Resetear el estado de caché en cada llamada
-        setCacheStatus('Consultando...');
-        setLatency(null);
-
-        // <-- INICIO DE MEDICIÓN DE TIEMPO -->
-        const startTime = Date.now();
-
-        try {
-            const response = await axios.get(`/products/${productId}`);
-            const data = response.data;
-            
-            // <-- FIN DE MEDICIÓN DE TIEMPO -->
-            const endTime = Date.now();
-            const timeDiff = endTime - startTime;
-            setLatency(timeDiff);
-
-            // Inferencia de caché (Heurística en el frontend)
-            // Asumimos: < 70ms = Cache Hit (Rápido) | > 150ms = Cache Miss (Lento/DB)
-            if (timeDiff < 300) {
-                setCacheStatus('Caché: HIT ⚡');
-            } else if (timeDiff < 400) {
-                setCacheStatus('Caché: MISS (Latencia media)');
-            } else {
-                 setCacheStatus('Base de Datos (Latencia alta)');
-            }
-            // <-- FIN INFERENCIA -->
-
-            setFormData({
-                name: data.name || '',
-                price: data.price || '',
-                stock: data.stock || '',
-                category_id: data.category_id || '',
-            });
-            
-            // ... (rest of the code remains unchanged) ...
-
-        } catch (err) {
-            console.error(`Error fetching product ${productId}:`, err);
-            setError("Error al cargar los datos del producto para edición.");
-            setCacheStatus('ERROR DE CONEXIÓN');
-        } finally {
-            setLoading(false);
-        }
-    }, [isEditing, productId]);
+    // <-- ÚNICO EFECTO DE CARGA CONTROLADO -->
     useEffect(() => {
-        fetchCategories();
-        fetchProductData();
-    }, [fetchProductData]);
+        // Esta función engloba toda la inicialización y se ejecuta SÓLO una vez
+        // (o una vez por el efecto secundario de StrictMode, pero el doble fetch
+        // se resuelve al combinar las llamadas).
+        
+        const loadInitialData = async () => {
+            setLoading(true);
+            setError(null);
+            
+            // --- Carga de Categorías (Siempre necesaria) ---
+            try {
+                const response = await axios.get(`/categories?skip=0&limit=100`);
+                const fetchedCategories = response.data;
+                setCategories(fetchedCategories);
+                
+                // Si estamos creando, seleccionamos la primera categoría por defecto
+                if (!isEditing && fetchedCategories.length > 0) {
+                    setFormData(prev => ({ ...prev, category_id: fetchedCategories[0].id_key }));
+                }
+
+            } catch (err) {
+                console.error("Error fetching categories:", err);
+                setError("Error al cargar las categorías. No se pueden crear/editar productos sin categorías.");
+            }
+            
+            // --- Carga de Producto (Solo en modo edición) ---
+            if (isEditing) {
+                setCacheStatus('Consultando...');
+                setLatency(null);
+
+                const startTime = Date.now();
+
+                try {
+                    const response = await axios.get(`/products/${productId}`);
+                    const data = response.data;
+                    
+                    const endTime = Date.now();
+                    const timeDiff = endTime - startTime;
+                    setLatency(timeDiff);
+
+                    // Inferencia de caché (Heurística)
+                    if (timeDiff < CACHE_HIT_THRESHOLD_MS) {
+                        setCacheStatus('Caché: HIT ⚡');
+                    } else if (timeDiff < 400) { // Umbral ajustado para latencia de red en producción (Render)
+                        setCacheStatus('Caché: MISS (Latencia media)');
+                    } else {
+                        setCacheStatus('Base de Datos (Latencia alta)');
+                    }
+
+                    setFormData({
+                        name: data.name || '',
+                        price: data.price || '',
+                        stock: data.stock || '',
+                        category_id: data.category_id || '',
+                    });
+                    
+                    setHasOrders(data.order_details && data.order_details.length > 0); 
+                } catch (err) {
+                    console.error(`Error fetching product ${productId}:`, err);
+                    setError("Error al cargar los datos del producto para edición.");
+                    setCacheStatus('ERROR DE CONEXIÓN');
+                }
+            }
+            
+            setLoading(false);
+        };
+        
+        loadInitialData();
+
+    // Solo debe ejecutarse cuando cambia el modo de edición (la primera vez que carga)
+    // Usamos `isEditing` y `productId` para garantizar que se dispare correctamente al navegar.
+    // El useCallback de `fetchProductData` ya no es necesario aquí.
+    }, [isEditing, productId]); 
+    
     // =========================================================================
     // II. HANDLERS
     // =========================================================================
@@ -215,13 +224,13 @@ const ProductFormScreen = () => {
     };
 
     // Estilos CSS estándar (ACTUALIZADOS PARA DARK MODE / MERCADO FAKE)
+    // Se corrigen los estilos de borde para evitar el warning de React sobre shorthand/non-shorthand.
     const styles = {
         container: { padding: '0 10px', maxWidth: '700px', margin: '0 auto', fontFamily: 'Arial, sans-serif', color: '#e0e0e0' },
         header: (isEditing) => ({
             fontSize: '2rem',
             fontWeight: 'bold',
             marginBottom: '30px',
-
             color: isEditing ? '#3b82f6' : '#ff5722', // Azul para editar, Rojo para crear
         }),
         backButton: {
@@ -229,15 +238,15 @@ const ProductFormScreen = () => {
             alignItems: 'center',
             gap: '5px',
             marginBottom: '20px',
-
             backgroundColor: '#2e2e2e',
             color: '#e0e0e0',
             padding: '8px 15px',
             borderRadius: '5px',
             cursor: 'pointer',
-            border: '1px solid #424242',
+            borderWidth: '1px', // CORRECCIÓN: Desglosar border
+            borderStyle: 'solid',
+            borderColor: '#424242',
             fontWeight: '600',
-
             transition: 'background-color 0.15s'
         },
         form: {
@@ -245,8 +254,9 @@ const ProductFormScreen = () => {
             borderRadius: '10px',
             boxShadow: '0 4px 8px rgba(0, 0, 0, 0.4)',
             backgroundColor: '#1e1e1e', // Fondo de formulario oscuro
-
-            border: '1px solid #424242'
+            borderWidth: '1px', // CORRECCIÓN: Desglosar border
+            borderStyle: 'solid',
+            borderColor: '#424242',
         },
         formGroup: { marginBottom: '20px' },
         label: {
@@ -254,33 +264,35 @@ const ProductFormScreen = () => {
             fontSize: '0.9rem',
             fontWeight: '600',
             color: '#bdbdbd',
-
             marginBottom: '5px'
         },
         input: {
             width: '100%',
             padding: '10px',
-            border: '1px solid #424242',
+            borderWidth: '1px', // CORRECCIÓN: Desglosar border
+            borderStyle: 'solid',
+            borderColor: '#424242',
             borderRadius: '5px',
             backgroundColor: '#2e2e2e',
-
-            color: '#e0e0e0'
+            color: '#e0e0e0',
+            transition: 'border-color 0.2s'
         },
         select: {
             width: '100%',
             padding: '10px',
-            border: '1px solid #424242',
+            borderWidth: '1px', // CORRECCIÓN: Desglosar border
+            borderStyle: 'solid',
+            borderColor: '#424242',
             borderRadius: '5px',
             backgroundColor: '#2e2e2e',
-
-            color: '#e0e0e0'
+            color: '#e0e0e0',
+            transition: 'border-color 0.2s'
         },
         buttonGroup: { display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end' },
         saveButton: {
             padding: '10px 20px',
             backgroundColor: '#ff5722', // Rojo Primario
             color: 'white',
-
             border: 'none',
             borderRadius: '5px',
             cursor: 'pointer',
@@ -289,7 +301,6 @@ const ProductFormScreen = () => {
         },
         cancelButton: {
             padding: '10px 20px',
-
             backgroundColor: '#424242', // Gris oscuro
             color: 'white',
             border: 'none',
@@ -297,7 +308,7 @@ const ProductFormScreen = () => {
             cursor: 'pointer',
             transition: 'background-color 0.2s'
         },
-        deleteButton: { // <-- NUEVO ESTILO
+        deleteButton: { 
             padding: '10px 20px',
             backgroundColor: '#ef4444', // Rojo de Peligro
             color: 'white',
@@ -333,6 +344,11 @@ const ProductFormScreen = () => {
             }
         }
     };
+    
+    // Handlers de Input Focus/Blur para el borde dinámico
+    const handleInputFocus = (e) => { e.target.style.borderColor = '#ff5722'; };
+    const handleInputBlur = (e) => { e.target.style.borderColor = styles.input.borderColor; };
+
     // Handlers de hover
     const handleBackHover = (e, hover) => {
         e.currentTarget.style.backgroundColor = hover ?
@@ -431,6 +447,8 @@ const ProductFormScreen = () => {
                         disabled={isSubmitting}
 
                         style={styles.input}
+                        onFocus={handleInputFocus}
+                        onBlur={handleInputBlur}
                     />
                 </div>
 
@@ -452,6 +470,8 @@ const ProductFormScreen = () => {
 
                         disabled={isSubmitting}
                         style={styles.input}
+                        onFocus={handleInputFocus}
+                        onBlur={handleInputBlur}
                     />
                 </div>
 
@@ -472,6 +492,8 @@ const ProductFormScreen = () => {
 
                         disabled={isSubmitting}
                         style={styles.input}
+                        onFocus={handleInputFocus}
+                        onBlur={handleInputBlur}
                     />
 
                 </div>
@@ -489,6 +511,8 @@ const ProductFormScreen = () => {
 
                         disabled={isSubmitting}
                         style={styles.select}
+                        onFocus={handleInputFocus}
+                        onBlur={handleInputBlur}
 
                     >
                         <option value="" disabled>-- Seleccione una Categoría --</option>

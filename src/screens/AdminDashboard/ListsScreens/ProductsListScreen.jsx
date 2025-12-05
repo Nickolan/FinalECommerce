@@ -36,23 +36,33 @@ const ProductsListScreen = () => {
             let url = `/products?skip=0&limit=${PRODUCT_LIMIT}`;
             if (selectedCategoryId) {
                 // Añadir filtro por categoría si está seleccionada (asumiendo que la 
-                url += `&category_id=${selectedCategoryId}`;
+                const categoriesResponse = await axios.get(`/categories/${selectedCategoryId}`)
+                console.log("Respuesta de Categoria: ",categoriesResponse);
+                let fetchedProducts = categoriesResponse.data.products.map(p => ({
+                    ...p,
+                    // Añadir imagen forzada al objeto del producto
+                    imageUrl: getForcedImageUrl(p.id_key) 
+                }));
+                setProducts(fetchedProducts)
+                
+            } else {
+
+                const productsResponse = await axios.get(url);
+                // Adjuntar el nombre de la categoría al producto para mostrarlo en la tabla
+                const categoryMap = fetchedCategories.reduce((acc, cat) => {
+                    acc[cat.id_key] = cat.name;
+                    return acc;
+                }, {});
+                const enrichedProducts = productsResponse.data.map(p => ({
+                    ...p,
+                    categoryName: categoryMap[p.category_id] || 'Desconocida',
+                    imageUrl: getForcedImageUrl(p.id_key)
+                }));
+                // Ordenar por ID para consistencia
+                const sortedProducts = enrichedProducts.sort((a, b) => a.id_key - b.id_key);
+                setProducts(sortedProducts);
             }
 
-            const productsResponse = await axios.get(url);
-            // Adjuntar el nombre de la categoría al producto para mostrarlo en la tabla
-            const categoryMap = fetchedCategories.reduce((acc, cat) => {
-                acc[cat.id_key] = cat.name;
-                return acc;
-            }, {});
-            const enrichedProducts = productsResponse.data.map(p => ({
-                ...p,
-                categoryName: categoryMap[p.category_id] || 'Desconocida',
-                imageUrl: getForcedImageUrl(p.id_key)
-            }));
-            // Ordenar por ID para consistencia
-            const sortedProducts = enrichedProducts.sort((a, b) => a.id_key - b.id_key);
-            setProducts(sortedProducts);
 
         } catch (err) {
             console.error("Error fetching data:", err);
@@ -64,6 +74,8 @@ const ProductsListScreen = () => {
 
     useEffect(() => {
         fetchProducts();
+        console.log("Activar");
+        
     }, [fetchProducts]);
     // =========================================================================
     // II. LÓGICA DE FILTRADO (Lado del Cliente)
@@ -381,7 +393,7 @@ const ProductsListScreen = () => {
                                         <td
                                             style={styles.td}>{product.name}</td>
 
-                                        <td style={styles.td}>{product.categoryName}</td>
+                                        <td style={styles.td}>{selectedCategoryId ? selectedCategoryId : product.category.name}</td>
 
 
                                         <td style={{ ...styles.td, fontWeight: 'bold', color: '#10b981' }}>${product.price.toFixed(2)}</td>

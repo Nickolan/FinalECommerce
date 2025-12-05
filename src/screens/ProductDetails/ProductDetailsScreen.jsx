@@ -9,7 +9,7 @@ import { addItemToCart } from '../../redux/slices/cartSlice';
 
 // Función para simular una imagen forzada para el producto (placeholder)
 // Usaremos el rojo de Mercado Fake para el placeholder.
-const getForcedImageUrl = (id) => `https://placehold.co/400x400/ff5722/ffffff?text=Producto-${id}`;
+const getForcedImageUrl = (id) => `https://picsum.photos/400/400?random=${id}`;
 const ProductDetailsScreen = () => {
     // Hooks de navegación y estado global
     const navigate = useNavigate();

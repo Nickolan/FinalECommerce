@@ -8,6 +8,8 @@ import { CiUser, CiShoppingCart, CiBoxList, CiMoneyBill, CiDeliveryTruck, CiGrid
 // --- FUNCIÓN DE UTILIDAD: Obtener el recuento a través de GET List ---
 const fetchCount = async (endpoint) => {
     try {
+        console.log('Ejecutando endpoint');
+        
         // Workaround: Usamos un límite alto para obtener la mayoría de las entidades
         // ya que el servidor no tiene un endpoint de conteo dedicado.
         const response = await axios.get(`${endpoint}?skip=0&limit=10000`); 
@@ -34,6 +36,7 @@ const DashboardScreen = () => {
     ];
     useEffect(() => {
         const loadCounts = async () => {
+            
             setLoading(true);
             setError(null);
             try {
