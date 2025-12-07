@@ -6,7 +6,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { CiSaveDown1 } from "react-icons/ci";
 import { IoChevronBackCircle, IoFlashOutline, IoCloudOfflineOutline } from "react-icons/io5";
 
-const CACHE_HIT_THRESHOLD_MS = 300; // Heurística de caché
+const CACHE_HIT_THRESHOLD_MS = 18; // Heurística de caché
 
 const ProductFormScreen = () => {
     const { productId } = useParams();
@@ -78,12 +78,12 @@ const ProductFormScreen = () => {
                     setLatency(timeDiff);
 
                     // Inferencia de caché (Heurística)
-                    if (timeDiff < CACHE_HIT_THRESHOLD_MS) {
-                        setCacheStatus('Caché: HIT ⚡');
-                    } else if (timeDiff < 400) { // Umbral ajustado para latencia de red en producción (Render)
-                        setCacheStatus('Caché: MISS (Latencia media)');
+                    if (timeDiff < 100) {
+                        setCacheStatus('HEALTHY: (Latencia Baja)');
+                    } else if (timeDiff <  500) { // Umbral ajustado para latencia de red en producción (Render)
+                        setCacheStatus('WARNING: (Latencia media)');
                     } else {
-                        setCacheStatus('Base de Datos (Latencia alta)');
+                        setCacheStatus('CRITICAL: (Latencia alta)');
                     }
 
                     setFormData({
@@ -162,7 +162,7 @@ const ProductFormScreen = () => {
 
             // Redirigir al listado después de una pequeña pausa
             setTimeout(() => {
-                navigate('/admin/products');
+                //navigate('/admin/products');
             }, 1000);
         } catch (err) {
             console.error("Error al guardar producto:", err);
@@ -412,7 +412,7 @@ const ProductFormScreen = () => {
 
                     {/* 1. Estado de Caché */}
                     <div style={styles.cacheIndicator(cacheStatus)}>
-                        {cacheStatus.includes('HIT') ? <IoFlashOutline size={20} /> : <IoCloudOfflineOutline size={20} />}
+                        {cacheStatus.includes('') ? <IoFlashOutline size={20} /> : <IoCloudOfflineOutline size={20} />}
                         {cacheStatus}
                     </div>
 

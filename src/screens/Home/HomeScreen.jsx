@@ -15,11 +15,9 @@ import BANNER_IMAGE_URL from '../../assets/banner.png'
 
 // Función para simular una imagen forzada para el producto (placeholder)
 const getForcedImageUrl = (id) => `https://picsum.photos/300/200?random=${id}`;
-// Imagen de banner (buscada en Google)
-//const BANNER_IMAGE_URL = 'https://picsum.photos/1200/300?random=1';
 
 // CONSTANTE DE HEURÍSTICA DE CACHÉ
-const CACHE_HIT_THRESHOLD_MS = 360;
+const CACHE_HIT_THRESHOLD_MS = 18;
 
 const HomeScreen = () => {
     const dispatch = useDispatch();
@@ -42,69 +40,72 @@ const HomeScreen = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalProduct, setModalProduct] = useState(null);
 
-    // <-- NUEVO ESTADO PARA CONTROLAR LA INICIALIZACIÓN -->
-    const [isInitialized, setIsInitialized] = useState(false);
-    // <-- FIN NUEVO ESTADO -->
-
     // =========================================================================
-    // I. CARGA DE DATOS: INICIALIZACIÓN (Solo una vez)
+    // I. CARGA Y SINCRONIZACIÓN DE DATOS (Optimización de Llamadas)
     // =========================================================================
 
     useEffect(() => {
-        // La carga inicial de Categorías SOLO debe ocurrir una vez al montar.
-        // Usamos isInitialized para prevenir el doble fetch en StrictMode.
-        if (isInitialized) return;
-
-        const fetchInitialCategories = async () => {
+        
+        // Función para cargar las categorías (si están vacías en Redux)
+        const loadInitialCategories = async () => {
+            if (categories.length > 0) return; // Si ya hay categorías, salimos
             try {
-                console.log("ejecucion2");
                 const response = await axios.get(`/categories`);
                 dispatch(setCategories(response.data));
-                setIsInitialized(true); // Marcar como inicializado SOLO al tener éxito
             } catch (err) {
-                console.error("Error cargando categorías en inicialización:", err);
+                console.error("Error cargando categorías:", err);
                 setError("Error al cargar las categorías iniciales.");
             }
         };
-
-        fetchInitialCategories();
-    }, [dispatch, isInitialized]); // Dependencia de isInitialized
-
-    // 2. Cargar Productos (se dispara al cambiar filtros/paginación o al inicializar)
-    // ESTE HOOK AHORA SOLO SE ENFOCA EN EL CAMBIO DE FILTROS/PAGINACIÓN
-    useEffect(() => {
-        // No cargar productos si las categorías aún no se han cargado (isInitialized = false)
-        if (!isInitialized) return;
 
         const loadProducts = async () => {
             setLoading(true);
             setError(null);
 
-            // Se calcula el 'skip' (offset) para la paginación
             const skip = (currentPage - 1) * productsPerPage;
-
-            // Asumimos que la API soporta el filtro `category_id`
-            let url = `/products?skip=${skip}&limit=${productsPerPage}`;
+            
+            let productsToProcess = [];
+            let totalRecords = 0; // Total de registros para calcular totalPages
 
             try {
+                // --- 1. Carga con Filtro de Categoría ---
+                if (selectedCategoryId) {
+                    // Carga TODOS los productos de la categoría para paginar localmente
+                    const categoriesResponse = await axios.get(`/categories/${selectedCategoryId}`);
+                    productsToProcess = categoriesResponse.data.products.filter((e) => e.stock > 0);
+                    
+                    totalRecords = productsToProcess.length; 
 
-                const response = await axios.get(url);
-                console.log("ejecucion");
+                    // Aplicamos la paginación de forma local (en el frontend)
+                    const startIndex = skip;
+                    const endIndex = startIndex + productsPerPage;
+                    productsToProcess = productsToProcess.slice(startIndex, endIndex);
 
-                let fetchedProducts = response.data.map(p => ({
+                } else {
+                    // --- 2. Carga Sin Filtro (Pagina el servidor) ---
+                    let url = `/products`; 
+                    const productsResponse = await axios.get(url);
+                    
+                    // Aplicamos el filtro de stock en el frontend para consistencia
+                    const allProductsWithStock = productsResponse.data.filter((e) => e.stock > 0); 
+                    
+                    totalRecords = allProductsWithStock.length;
+                    
+                    // Aplicamos paginación local aquí también, ya que la API puede no limitar el retorno
+                    const startIndex = skip;
+                    const endIndex = startIndex + productsPerPage;
+                    productsToProcess = allProductsWithStock.slice(startIndex, endIndex);
+                }
+                
+                let fetchedProducts = productsToProcess.map(p => ({
                     ...p,
-                    // Añadir imagen forzada al objeto del producto
                     imageUrl: getForcedImageUrl(p.id_key)
                 }));
-
-                // Simulación del total de productos
-                const simulatedTotal = fetchedProducts.length < productsPerPage
-                    ? skip + fetchedProducts.length
-                    : skip + fetchedProducts.length + productsPerPage;
-
+                
+                // NOTA CLAVE: El total para el paginado es el total de registros filtrados (totalRecords)
                 dispatch(setProducts({
                     products: fetchedProducts,
-                    total: simulatedTotal,
+                    total: totalRecords, // <-- USAMOS EL TOTAL REAL DE REGISTROS CON STOCK
                     currentPage: currentPage
                 }));
 
@@ -115,48 +116,14 @@ const HomeScreen = () => {
                 setLoading(false);
             }
         };
+        
+        // Disparo de la carga:
+        loadInitialCategories(); // Carga categorías si no existen
+        loadProducts(); // Carga productos basado en filtros y página
 
-        loadProducts();
+    // Dependencias CLAVE: Las llamadas se disparan SÓLO cuando cambian estos valores.
+    }, [dispatch, currentPage, productsPerPage, selectedCategoryId, categories.length]); 
 
-        // Dependencias que disparan la nueva carga desde la API
-    }, [dispatch, currentPage, productsPerPage, isInitialized]); // isInitialized asegura que no se ejecute antes de tiempo
-
-    useEffect(() => {
-        const loadByCategory = async () => {
-            setLoading(true);
-            setError(null);
-            try {
-    
-                // Se calcula el 'skip' (offset) para la paginación
-                const skip = (currentPage - 1) * productsPerPage;
-                const categoriesResponse = await axios.get(`/categories/${selectedCategoryId}`)
-                console.log("Respuesta de Categoria: ", categoriesResponse);
-                let fetchedProducts = categoriesResponse.data.products.map(p => ({
-                    ...p,
-                    // Añadir imagen forzada al objeto del producto
-                    imageUrl: getForcedImageUrl(p.id_key)
-                }));
-    
-                // Simulación del total de productos
-                const simulatedTotal = fetchedProducts.length < productsPerPage
-                    ? skip + fetchedProducts.length
-                    : skip + fetchedProducts.length + productsPerPage;
-    
-                dispatch(setProducts({
-                    products: fetchedProducts,
-                    total: simulatedTotal,
-                    currentPage: currentPage
-                }));
-                
-            } catch (error) {
-                
-            } finally {
-                setLoading(false);
-            }
-        }
-
-        loadByCategory()
-    }, [selectedCategoryId])
 
     // =========================================================================
     // II. LÓGICA DE INTERACCIÓN (Detección de Caché)
@@ -186,8 +153,6 @@ const HomeScreen = () => {
             // 3. FIN DE MEDICIÓN Y CÁLCULO
             const endTime = Date.now();
             const timeDiff = endTime - startTime;
-            console.log(timeDiff);
-
 
             const productData = response.data;
             productData.imageUrl = getForcedImageUrl(productData.id_key);
@@ -217,6 +182,8 @@ const HomeScreen = () => {
 
     // Cambio de categoría
     const handleCategoryChange = (e) => {
+        // Al cambiar el filtro, forzamos la página a 1 para empezar de nuevo
+        dispatch(setCurrentPage(1)); 
         dispatch(setSelectedCategory(e.target.value));
     };
 
@@ -225,9 +192,12 @@ const HomeScreen = () => {
     const handlePageChange = (newPage) => {
         if (newPage >= 1 && newPage <= totalPages) {
             dispatch(setCurrentPage(newPage));
+            // <-- NUEVO CAMBIO: Subir al inicio de la pantalla -->
+            window.scrollTo(0, 0); 
+            // <-- FIN NUEVO CAMBIO -->
         }
     };
-
+    
     // =========================================================================
     // III. RENDERIZADO
     // =========================================================================
@@ -381,7 +351,7 @@ const HomeScreen = () => {
                         <div style={styles.errorBox}>No se encontraron productos que coincidan con los filtros.</div>
                     ) : null}
 
-            {/* Paginación */}
+            {/* Paginación Final */}
             {!loading && totalPages > 1 && (
                 <div style={styles.pagination}>
                     <button
